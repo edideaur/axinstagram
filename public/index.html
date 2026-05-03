@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Paste an Instagram link to get an embeddable URL that works in Discord, Telegram, Slack, and more.">
+<meta property="og:title" content="axinstagram">
+<meta property="og:description" content="Paste an Instagram link to get an embeddable URL that works in Discord, Telegram, Slack, and more.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="axinstagram">
+<meta name="twitter:description" content="Paste an Instagram link to get an embeddable URL that works in Discord, Telegram, Slack, and more.">
+<title>axinstagram</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5/600.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono@5/700.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #080808;
+    --surface: #101010;
+    --border: #1e1e1e;
+    --border2: #282828;
+    --text: #e8e8e8;
+    --muted: #444;
+    --muted2: #282828;
+    --r: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  html, body { background: var(--bg); color: var(--text); min-height: 100vh; }
+  body { display: flex; flex-direction: column; align-items: center; padding: 3.5rem 1rem 5rem; }
+  .wrap { width: 100%; max-width: 580px; }
+
+  .logo { font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); transition: color .15s; text-decoration: none; }
+  .logo:hover { color: #fff; }
+  .logo-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.25rem; }
+  .top-social { display: flex; gap: .6rem; }
+  .top-social a { color: var(--muted); transition: color .15s; }
+  .top-social a:hover { color: #fff; }
+  .top-social svg { width: 18px; height: 18px; fill: currentColor; }
+
+  .input-row { display: flex; gap: 6px; }
+  .input-wrap { flex: 1; min-width: 0; position: relative; display: flex; }
+  input[type=text] {
+    flex: 1; min-width: 0; width: 100%;
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
+    color: var(--text); font-family: inherit; font-size: 13px; padding: 10px 32px 10px 12px;
+    outline: none; transition: border-color .15s;
+  }
+  input[type=text]:focus { border-color: #383838; }
+  input[type=text]::placeholder { color: var(--muted2); }
+  .clear-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #383838; cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 2px 4px; display: none;
+    transition: color .15s;
+  }
+  .clear-btn:hover { color: #888; }
+
+  .btn {
+    background: var(--text); border: none; border-radius: var(--r);
+    color: var(--bg); cursor: pointer; font-family: inherit; font-size: 11px;
+    font-weight: 700; letter-spacing: .08em; padding: 10px 18px;
+    text-transform: uppercase; white-space: nowrap; transition: opacity .15s;
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn:hover:not(:disabled) { opacity: .75; }
+  .btn:disabled { opacity: .3; cursor: default; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: #555; }
+  .btn-ghost:hover:not(:disabled) { border-color: #383838; color: var(--text); opacity: 1; }
+
+  .spinner {
+    width: 12px; height: 12px;
+    border: 1.5px solid rgba(0,0,0,.25); border-top-color: #000;
+    border-radius: 50%; animation: spin .5s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #error { font-size: 12px; color: #484848; padding: 10px 0 0; display: none; }
+
+  #result { display: none; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
+
+  .embed-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
+    padding: 8px 8px 8px 12px;
+  }
+  .embed-url {
+    flex: 1; font-size: 12px; color: #505050;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    cursor: pointer; user-select: all; transition: color .15s;
+  }
+  .embed-url:hover { color: #888; }
+  .copy-btn {
+    flex-shrink: 0; background: transparent; border: 1px solid var(--border2); border-radius: 3px;
+    color: #484848; cursor: pointer; font-family: inherit; font-size: 10px;
+    font-weight: 600; letter-spacing: .08em; padding: 5px 10px;
+    text-transform: uppercase; white-space: nowrap; transition: border-color .15s, color .15s;
+  }
+  .copy-btn:hover { border-color: #383838; color: var(--text); }
+  .copy-btn.copied { color: #4a9a6a; border-color: #1e3a2a; }
+  .manual-actions .copy-btn { border-radius: var(--r); padding: 10px 18px; font-size: 11px; }
+
+  .video-wrap {
+    background: #000; border: 1px solid var(--border); border-radius: var(--r);
+    overflow: hidden; line-height: 0;
+  }
+  video { width: 100%; display: block; outline: none; }
+
+  .photo-grid {
+    display: grid; gap: 2px;
+    border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
+  }
+  .photo-cell {
+    position: relative; aspect-ratio: 1; overflow: hidden;
+    background: #0e0e0e; display: block; text-decoration: none;
+  }
+  .photo-cell img, .photo-cell video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-cell .display-img { transition: transform .2s; }
+  .photo-cell:hover .display-img { transform: scale(1.04); }
+  .photo-cell video:hover { cursor: pointer; }
+  .photo-cell .og-img { position: absolute; inset: 0; opacity: 0; pointer-events: all; }
+  .photo-grid.single .photo-cell { aspect-ratio: unset; }
+  .photo-grid.single .photo-cell .display-img { height: auto; max-height: 72vh; object-fit: contain; }
+  .photo-grid.single .photo-cell .og-img { height: 100%; }
+  #qualitySelect {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
+    color: var(--text); font-family: inherit; font-size: 11px; padding: 9px 10px;
+    cursor: pointer; outline: none; display: none;
+  }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .vid-badge {
+    position: absolute; bottom: 5px; right: 5px;
+    background: rgba(0,0,0,.6); border-radius: 3px;
+    width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  }
+
+  .photo-hint { font-size: 11px; color: #383838; }
+
+  .actions { display: flex; gap: 6px; }
+
+  #manualPanel { display: none; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
+  .manual-instr { font-size: 12px; color: #505050; line-height: 1.7; }
+  .manual-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  textarea#manualPaste, textarea#pfpModalPaste {
+    width: 100%; min-height: 80px; resize: vertical;
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
+    color: var(--text); font-family: inherit; font-size: 12px; padding: 10px 12px;
+    outline: none; transition: border-color .15s;
+  }
+  textarea#manualPaste:focus, textarea#pfpModalPaste:focus { border-color: #383838; }
+  textarea#manualPaste::placeholder, textarea#pfpModalPaste::placeholder { color: var(--muted2); }
+
+  #profileResult { display: none; flex-direction: column; gap: 1.5rem; margin-top: 1.25rem; }
+  .profile-header {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+  }
+  .profile-avatar {
+    width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+    border: 1px solid var(--border2); flex-shrink: 0; background: var(--surface);
+  }
+  .profile-info { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+  .profile-username { font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
+  .profile-username:hover { color: #aaa; }
+  .profile-full-name { font-size: 12px; color: #888; }
+  .profile-bio { font-size: 12px; color: #666; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .profile-stats { display: flex; gap: .9rem; font-size: 11px; color: #444; flex-wrap: wrap; margin-top: .1rem; }
+  .profile-stats b { color: var(--text); font-weight: 600; }
+  .post-card { display: flex; flex-direction: column; gap: .5rem; }
+  .post-meta { display: flex; align-items: baseline; gap: .75rem; }
+  .post-date { font-size: 10px; color: #383838; flex-shrink: 0; }
+  .post-caption { font-size: 12px; color: #666; line-height: 1.5; word-break: break-word; }
+  .post-grid {
+    display: grid; gap: 2px;
+    border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
+  }
+  .post-grid.single .photo-cell { aspect-ratio: unset; }
+  .post-grid.single .photo-cell .display-img { height: auto; max-height: 60vh; object-fit: contain; }
+  .post-grid.single .photo-cell .og-img { height: 100%; }
+  .post-link { font-size: 10px; color: #2e2e2e; text-decoration: none; letter-spacing: .06em; }
+  .post-link:hover { color: #666; }
+  .cap-toggle { background: none; border: none; color: #555; font-family: inherit; font-size: inherit; cursor: pointer; padding: 0; }
+  .cap-toggle:hover { color: var(--text); }
+  .carousel-badge {
+    position: absolute; top: 5px; right: 5px;
+    background: rgba(0,0,0,.6); border-radius: 3px;
+    width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
+  }
+  .capped-note { font-size: 11px; color: #383838; text-align: center; padding-top: .5rem; }
+
+  .tagline { font-size: 11px; color: #2a2a2a; letter-spacing: .04em; margin-bottom: 2rem; }
+
+  #landing { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.4rem; }
+  .landing-steps { display: flex; flex-direction: column; gap: .6rem; }
+  .l-step { display: flex; align-items: baseline; gap: .85rem; font-size: 12px; color: #383838; line-height: 1.5; }
+  .l-step > span { font-size: 9px; font-weight: 700; color: #222; letter-spacing: .12em; min-width: 1.6rem; flex-shrink: 0; }
+  .l-label { font-size: 9px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #222; }
+  .platform-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pill { font-size: 10px; color: #2a2a2a; border: 1px solid #191919; border-radius: 3px; padding: 3px 9px; letter-spacing: .04em; }
+
+  .avatar-btn { background: none; border: none; cursor: pointer; padding: 0; border-radius: 50%; flex-shrink: 0; transition: opacity .15s; }
+  .avatar-btn:hover { opacity: .8; }
+
+  #pfpModal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+  #pfpModalBox { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 1.25rem; max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: .75rem; }
+
+  .footer { margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .social-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .social-link {
+    color: #666; text-decoration: none; display: flex; align-items: center; gap: 7px;
+    font-size: 11px; font-weight: 500; transition: color .15s;
+    border: 1px solid #222; border-radius: var(--r); padding: 6px 10px;
+  }
+  .social-link:hover { color: #ccc; border-color: #3a3a3a; }
+  .social-link svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
+  .cta { font-size: 11px; color: #383838; }
+  </style>
+  <script async defer data-domain="axinstagram.com" data-api="https://plausible.canine.tools/api/event" src="https://plausible.canine.tools/js/script.js"></script>
+  <script>
+    window.plausible = window.plausible || function() { (plausible.q = plausible.q || []).push(arguments) };
+    plausible.init = plausible.init || function(o) { plausible.o = o };
+    plausible.init();
+  </script>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo-row">
+    <a class="logo" href="/">axinstagram</a>
+    <div class="top-social">
+      <a href="https://instagram.com/edideaur" target="_blank" rel="noopener" title="@edideaur">
+        <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+      </a>
+      <a href="https://ko-fi.com/edideaur/" target="_blank" rel="noopener" title="ko-fi">
+        <svg viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+      </a>
+      <a href="https://github.com/edideaur/axinstagram/" target="_blank" rel="noopener" title="source">
+        <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <div class="tagline">make instagram links embeddable anywhere</div>
+
+  <div class="input-row">
+    <div class="input-wrap">
+      <input type="text" id="urlInput" placeholder="instagram.com/p/... or /reel/..." autocomplete="off" spellcheck="false">
+      <button class="clear-btn" id="clearBtn" onclick="clearInput()" tabindex="-1">✕</button>
+    </div>
+    <button class="btn" id="goBtn" onclick="navigate()">
+      <div class="spinner" id="spin" style="display:none"></div>
+      <span id="btnLabel">Get</span>
+    </button>
+  </div>
+
+  <div id="error"></div>
+
+  <div id="result">
+    <div class="embed-row">
+      <span class="embed-url" id="embedUrl" onclick="copyEmbed()" title="Click to copy"></span>
+      <button class="copy-btn" id="copyBtn" onclick="copyEmbed()" aria-label="Copy embed URL">Copy</button>
+      <span id="copyLive" class="sr-only" aria-live="polite" aria-atomic="true"></span>
+    </div>
+    <div id="vidWrap" class="video-wrap" style="display:none">
+      <video id="vid" controls playsinline preload="metadata"></video>
+    </div>
+    <div id="photoGrid" class="photo-grid" style="display:none"></div>
+    <div class="photo-hint" id="photoHint" style="display:none"></div>
+    <div class="actions">
+      <button class="btn" id="dlBtn" onclick="dl()">Save</button>
+      <select id="qualitySelect" aria-label="Quality"></select>
+      <a class="btn btn-ghost" id="origBtn" href="#" target="_blank" rel="noopener">Original</a>
+    </div>
+  </div>
+
+  <div id="profileResult"></div>
+
+  <div id="manualPanel">
+    <p class="manual-instr" id="manualInstr"></p>
+    <div class="manual-actions">
+      <a class="btn" id="manualLink" target="_blank" rel="noopener">Open in Instagram ↗</a>
+      <button class="copy-btn" id="manualCopyBtn" onclick="copyManualUrl()">Copy URL</button>
+    </div>
+    <textarea id="manualPaste" placeholder="Paste the JSON response here…" spellcheck="false"></textarea>
+    <div class="actions">
+      <button class="btn" id="manualLoadBtn" onclick="parseManual()">Load</button>
+      <button class="btn btn-ghost" onclick="clearManual()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="landing">
+    <div>
+      <div class="l-label" style="margin-bottom:.6rem">works in</div>
+      <div class="platform-pills">
+        <span class="pill">Discord</span>
+        <span class="pill">Telegram</span>
+        <span class="pill">X / Twitter</span>
+        <span class="pill">Slack</span>
+        <span class="pill">WhatsApp</span>
+        <span class="pill">iMessage</span>
+        <span class="pill">Signal</span>
+        <span class="pill">LinkedIn</span>
+        <span class="pill">Mastodon</span>
+        <span class="pill">Matrix</span>
+        <span class="pill">Reddit</span>
+        <span class="pill">FB Messenger</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="pfpModal" style="display:none" onclick="if(event.target===this)closePfpModal()">
+    <div id="pfpModalBox">
+      <p class="manual-instr">Instagram doesn't share full-size profile pictures without a logged-in session. Open the link below while logged in, copy the full JSON response, and paste it here.</p>
+      <div class="manual-actions">
+        <a class="btn" id="pfpModalLink" target="_blank" rel="noopener">Open in Instagram ↗</a>
+        <button class="copy-btn" id="pfpModalCopyBtn" onclick="copyPfpUrl()">Copy URL</button>
+      </div>
+      <textarea id="pfpModalPaste" placeholder="Paste the JSON response here…" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn" onclick="loadPfpFromPaste()">Load</button>
+        <button class="btn btn-ghost" onclick="closePfpModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="social-row">
+      <a class="social-link" href="https://instagram.com/edideaur" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        @edideaur
+      </a>
+      <a class="social-link" href="https://ko-fi.com/edideaur/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+        ko-fi
+      </a>
+      <a class="social-link" href="https://github.com/edideaur/axinstagram/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        source
+      </a>
+    </div>
+    <div class="cta">if axinstagram saves you time, a follow or donation helps keep it going ♥</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let state = { videoUrl: null, photos: null, isPhoto: false };
+let manualType = 'post';
+let currentRaw = '';
+let currentProfileInfo = null;
+let resolvedPfpUrl = null;
+
+const ERR = {
+  'fetch.empty': 'No media found, post may be private or deleted.',
+  'fetch.fail': 'Could not reach Instagram. Try again.',
+  'link.unsupported': 'Not a recognised Instagram link.',
+};
+
+function gridCols(n) {
+  if (n <= 1) return 1;
+  if (n === 3) return 3;
+  return Math.ceil(Math.sqrt(n));
+}
+
+function navigate() {
+  const raw = $('urlInput').value.trim();
+  if (!raw) return;
+  let u;
+  try { u = new URL(/^https?:\/\//.test(raw) ? raw : 'https://' + raw); } catch { return; }
+  const parts = u.pathname.split('/').filter(Boolean);
+  $('goBtn').disabled = true;
+  $('spin').style.display = 'flex';
+  $('btnLabel').textContent = 'Loading';
+  if (parts[0] === 'p' && parts[1]) { location.href = '/p/' + parts[1] + '/'; plausible('Navigate', { props: { type: 'post' } }); }
+  else if ((parts[0] === 'reel' || parts[0] === 'reels') && parts[1]) { location.href = '/reel/' + parts[1] + '/'; plausible('Navigate', { props: { type: 'reel' } }); }
+  else if (parts[0] === 'stories' && parts[1]) {
+    if (parts[1] === 'highlights' && parts[2]) location.href = '/stories/highlights/' + parts[2] + '/';
+    else location.href = '/stories/' + parts[1] + '/';
+    plausible('Navigate', { props: { type: 'story' } });
+  } else if (parts.length === 1 && /^[\w.]{1,30}$/.test(parts[0])) {
+    location.href = '/' + parts[0] + '/';
+    plausible('Navigate', { props: { type: 'profile' } });
+  } else {
+    $('goBtn').disabled = false;
+    $('spin').style.display = 'none';
+    $('btnLabel').textContent = 'Get';
+  }
+}
+
+async function go() {
+  const raw = $('urlInput').value.trim();
+  if (!raw) return;
+  let clean = raw;
+  try { const u = new URL(raw); u.search = ''; clean = u.toString(); } catch {}
+
+  $('goBtn').disabled = true;
+  $('spin').style.display = 'flex';
+  $('btnLabel').textContent = 'Fetching';
+  $('error').style.display = 'none';
+  $('result').style.display = 'none';
+
+  try {
+    const res = await fetch('/api?url=' + encodeURIComponent(clean));
+    const d = await res.json();
+    if (d.error === 'fetch.empty' || d.error === 'link.unsupported') {
+      let apiUrl;
+      try {
+        const u2 = new URL(clean.startsWith('http') ? clean : 'https://' + clean);
+        const parts = u2.pathname.split('/').filter(Boolean);
+        if ((parts[0] === 'p' || parts[0] === 'reel' || parts[0] === 'reels') && parts[1]) {
+          const vars = encodeURIComponent(JSON.stringify({ shortcode: parts[1], fetch_tagged_user_count: null, hoisted_comment_id: null, hoisted_reply_id: null }));
+          apiUrl = `https://www.instagram.com/graphql/query/?doc_id=8845758582119845&variables=${vars}`;
+        }
+      } catch {}
+      if (apiUrl) {
+        currentRaw = clean;
+        manualType = 'post';
+        showManual(apiUrl, 'This post may be private. Open this URL in a browser where you\'re logged into Instagram, copy the full JSON response, and paste it below.');
+        return;
+      }
+    }
+    if (d.error) { showErr(d.error); return; }
+    render(d, clean);
+  } catch { showErr('fetch.fail'); }
+  finally {
+    $('goBtn').disabled = false;
+    $('spin').style.display = 'none';
+    $('btnLabel').textContent = 'Get';
+  }
+}
+
+function makePhotoCell(p) {
+  const a = document.createElement('a');
+  a.target = '_blank'; a.rel = 'noopener'; a.className = 'photo-cell';
+  if (p.isVideo) {
+    a.href = p.full;
+    const vid = document.createElement('video');
+    vid.className = 'display-img';
+    vid.src = p.full;
+    if (p.thumb) vid.poster = p.thumb;
+    vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
+    a.addEventListener('mouseenter', () => vid.play().catch(() => {}));
+    a.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
+    a.addEventListener('click', e => { if (vid.paused) { e.preventDefault(); vid.play().catch(() => {}); } });
+    a.appendChild(vid);
+    const b = document.createElement('div'); b.className = 'vid-badge';
+    b.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>';
+    a.appendChild(b);
+  } else {
+    a.href = p.full;
+    const disp = document.createElement('img');
+    disp.className = 'display-img';
+    disp.src = p.thumb ?? p.full; disp.loading = 'lazy'; disp.alt = '';
+    a.appendChild(disp);
+    const og = document.createElement('img');
+    og.className = 'og-img'; og.src = p.full; og.alt = '';
+    a.appendChild(og);
+  }
+  return a;
+}
+
+function render(d, raw) {
+  state = { videoUrl: d.videoUrl ?? null, photos: d.photos ?? null, isPhoto: !!d.isPhoto };
+  $('vidWrap').style.display = 'none';
+  $('photoGrid').style.display = 'none';
+  $('photoHint').style.display = 'none';
+
+  // Quality dropdown
+  const sel = $('qualitySelect');
+  const firstWithQ = d.photos?.find(p => p.qualities?.length > 1);
+  if (firstWithQ) {
+    sel.innerHTML = firstWithQ.qualities.map(q => `<option value="${q.label}">${q.label}</option>`).join('');
+    sel.style.display = '';
+  } else {
+    sel.innerHTML = ''; sel.style.display = 'none';
+  }
+
+  if (d.photos && d.photos.length) {
+    const n = d.photos.length;
+    const cols = gridCols(n);
+    const grid = $('photoGrid');
+    grid.innerHTML = '';
+    grid.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+    grid.classList.toggle('single', cols === 1);
+    d.photos.forEach(p => grid.appendChild(makePhotoCell(p)));
+    grid.style.display = 'grid';
+    if (n > 1) {
+      $('photoHint').textContent = n + ' items, click any to open full resolution';
+      $('photoHint').style.display = 'block';
+      $('dlBtn').textContent = 'Save all';
+    } else {
+      $('dlBtn').textContent = 'Save';
+    }
+  } else {
+    $('vid').src = d.videoUrl ?? '';
+    $('vidWrap').style.display = 'block';
+    $('dlBtn').textContent = 'Save';
+    sel.style.display = 'none';
+  }
+
+  $('embedUrl').textContent = location.href;
+  $('origBtn').href = raw.startsWith('http') ? raw : 'https://' + raw;
+  $('landing').style.display = 'none';
+  $('result').style.display = 'flex';
+  plausible('Embed View', { props: { type: d.photos ? 'photo' : 'video', count: d.photos?.length || 1 } });
+}
+
+async function copyEmbed() {
+  try {
+    await navigator.clipboard.writeText(location.href);
+    const btn = $('copyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    $('copyLive').textContent = 'Copied to clipboard';
+    plausible('Copy Embed');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); $('copyLive').textContent = ''; }, 2000);
+  } catch {}
+}
+
+async function dl() {
+  const sel = $('qualitySelect');
+  const qLabel = sel.style.display !== 'none' ? sel.value : null;
+  const pickUrl = p => {
+    if (qLabel && p.qualities) {
+      const q = p.qualities.find(q => q.label === qLabel) ?? p.qualities[0];
+      return q.url;
+    }
+    return p.full;
+  };
+  const urls = state.photos ? state.photos.map(pickUrl)
+              : state.videoUrl ? [state.videoUrl] : [];
+  if (!urls.length) return;
+
+  const btn = $('dlBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+
+  try {
+    for (let i = 0; i < urls.length; i++) {
+      if (urls.length > 1) btn.textContent = `Saving ${i + 1}/${urls.length}…`;
+      const proxy = `/dl?url=${encodeURIComponent(urls[i])}&dl=1`;
+      try {
+        const res = await fetch(proxy);
+        if (!res.ok) { window.open(urls[i], '_blank'); continue; }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = blob.type.startsWith('video') ? 'media.mp4' : 'media.jpg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      } catch { window.open(urls[i], '_blank'); }
+      if (i < urls.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
+    plausible(urls.length > 1 ? 'Save All' : 'Save', { props: { count: urls.length } });
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+function showErr(msg) {
+  const el = $('error');
+  el.textContent = ERR[msg] || msg;
+  el.style.display = 'block';
+}
+
+function showManual(url, instr) {
+  $('manualInstr').textContent = instr;
+  $('manualLink').href = url;
+  $('manualPaste').value = '';
+  $('error').style.display = 'none';
+  $('result').style.display = 'none';
+  $('landing').style.display = 'none';
+  $('manualPanel').style.display = 'flex';
+}
+
+function clearManual() {
+  $('manualPanel').style.display = 'none';
+  $('error').style.display = 'none';
+  if ($('result').style.display === 'none' && $('profileResult').style.display === 'none') {
+    $('landing').style.display = '';
+  }
+}
+
+async function copyManualUrl() {
+  try {
+    await navigator.clipboard.writeText($('manualLink').href);
+    const btn = $('manualCopyBtn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy URL'; btn.classList.remove('copied'); }, 2000);
+  } catch {}
+}
+
+
+function parseGQLStories(json) {
+  const items = json?.data?.reels_media?.[0]?.items;
+  if (!items?.length) return null;
+  const byArea = arr => arr.reduce((a, b) => a.config_width * a.config_height >= b.config_width * b.config_height ? a : b);
+  const toQ = r => ({ url: r.src, label: r.config_width + '×' + r.config_height });
+  const photos = items.map(item => {
+    const disp = item.display_resources ?? [];
+    const thumb = disp.length ? byArea(disp).src : item.display_url;
+    if (item.is_video && item.video_resources?.length) {
+      const sorted = [...item.video_resources].sort((a, b) => b.config_width * b.config_height - a.config_width * a.config_height);
+      return { thumb, full: sorted[0].src, qualities: sorted.map(toQ), isVideo: true };
+    }
+    const sorted = [...disp].sort((a, b) => b.config_width * b.config_height - a.config_width * a.config_height);
+    return { thumb, full: sorted[0]?.src ?? item.display_url, qualities: sorted.length > 1 ? sorted.map(toQ) : undefined };
+  });
+  return { photos, isPhoto: true };
+}
+
+function parseGQLPost(json) {
+  const media = json?.graphql?.shortcode_media ?? json?.data?.shortcode_media ?? json?.data?.xdt_shortcode_media;
+  if (!media) return null;
+  const biggestRes = arr => arr?.length ? arr.reduce((a, b) => a.config_width * a.config_height >= b.config_width * b.config_height ? a : b) : null;
+  const smallestRes = arr => arr?.length ? arr.reduce((a, b) => a.config_width * a.config_height <= b.config_width * b.config_height ? a : b) : null;
+  const sidecar = media.edge_sidecar_to_children;
+  if (sidecar?.edges?.length) {
+    const photos = sidecar.edges
+      .filter(e => e.node?.display_url || e.node?.video_url)
+      .map(e => {
+        const n = e.node;
+        const disp = n.display_resources ?? [];
+        const thumb = smallestRes(disp)?.src ?? n.display_url;
+        const fullImg = biggestRes(disp)?.src ?? n.display_url;
+        if (n.video_url || n.is_video) return { thumb, full: n.video_url ?? fullImg, isVideo: true };
+        return { thumb, full: fullImg };
+      });
+    if (photos.length) return { photos, isPhoto: true };
+  }
+  if (media.video_url) return { videoUrl: media.video_url };
+  if (media.display_url) {
+    const disp = media.display_resources ?? [];
+    const full = biggestRes(disp)?.src ?? media.display_url;
+    return { videoUrl: full, thumbUrl: full, isPhoto: true };
+  }
+  return null;
+}
+
+function parseGQLProfile(json) {
+  const edges =
+    json?.data?.xdt_api__v1__feed__user_timeline_graphql_connection?.edges ??
+    json?.data?.user?.edge_owner_to_timeline_media?.edges;
+  if (!edges?.length) return null;
+
+  const firstNode = edges[0]?.node;
+  const userInfo = firstNode?.user ?? {};
+
+  const byArea = (arr, biggest) => arr?.length ? arr.reduce((a, b) => {
+    const aA = (a.width ?? a.config_width ?? 0) * (a.height ?? a.config_height ?? 0);
+    const bA = (b.width ?? b.config_width ?? 0) * (b.height ?? b.config_height ?? 0);
+    return biggest ? (aA >= bA ? a : b) : (aA <= bA ? a : b);
+  }) : null;
+  const getUrl = c => c?.url ?? c?.src;
+
+  const extractItem = item => {
+    const cands = item.image_versions2?.candidates ?? [];
+    const thumb = getUrl(byArea(cands, false));
+    const fullImg = getUrl(byArea(cands, true));
+    if (item.video_versions?.length) {
+      const sorted = [...item.video_versions].sort((a, b) => b.width * b.height - a.width * a.height);
+      const qualities = sorted.map(v => ({ url: v.url, label: v.width + '×' + v.height }));
+      return { thumb: fullImg, full: sorted[0].url, qualities, isVideo: true };
+    }
+    const sortedC = [...cands].sort((a, b) => b.width * b.height - a.width * a.height);
+    const qualities = sortedC.length > 1 ? sortedC.map(c => ({ url: c.url, label: c.width + '×' + c.height })) : undefined;
+    return { thumb, full: fullImg, qualities };
+  };
+
+  const posts = edges.map(({ node }) => {
+    const items = (node.carousel_media?.length ? node.carousel_media : [node])
+      .map(extractItem).filter(p => p.full || p.thumb);
+    return {
+      code: node.code ?? node.shortcode ?? '',
+      caption: node.caption?.text ?? '',
+      createdAt: node.taken_at ?? node.caption?.created_at ?? null,
+      items,
+    };
+  }).filter(p => p.items.length);
+
+  const bestPicUrl = (() => {
+    if (userInfo.hd_profile_pic_url_info?.url) return userInfo.hd_profile_pic_url_info.url;
+    const versions = userInfo.hd_profile_pic_versions ?? [];
+    const best = versions.filter(v => v?.url).reduce((a, b) =>
+      ((b?.width??0)*(b?.height??0)) > ((a?.width??0)*(a?.height??0)) ? b : a, null);
+    return best?.url ?? userInfo.profile_pic_url_hd ?? userInfo.profile_pic_url ?? '';
+  })();
+  return posts.length ? { type: 'profile', profile: { username: userInfo.username ?? '', profilePicUrl: bestPicUrl }, posts } : null;
+}
+
+async function parseManual() {
+  const raw = $('manualPaste').value.trim();
+  if (!raw) return;
+  const btn = $('manualLoadBtn');
+  btn.disabled = true;
+  try {
+    if (manualType === 'stories-userid') {
+      let userId = raw.replace(/\D/g, '');
+      if (!userId) {
+        try {
+          const j = JSON.parse(raw);
+          userId = String(j?.graphql?.user?.id ?? j?.data?.user?.id ?? '');
+        } catch {}
+      }
+      if (!userId) { showErr('Could not find a user ID in what you pasted.'); return; }
+      const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+      const vars = encodeURIComponent(`{"reel_ids":[${userId}],"highlight_reel_ids":[],"precomposed_overlay":false}`);
+      manualType = 'stories-media';
+      $('manualPaste').value = '';
+      $('manualInstr').textContent = 'Now open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.';
+      $('manualLink').href = `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`;
+      return;
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { showErr('Invalid JSON, make sure you copied the full response.'); return; }
+
+    let result = null;
+    if (manualType === 'stories-media') result = parseGQLStories(parsed);
+    else if (manualType === 'post') result = parseGQLPost(parsed);
+    else if (manualType === 'profile') {
+      result = parseGQLProfile(parsed);
+      if (result && currentProfileInfo) {
+        const gqlPic = result.profile.profilePicUrl;
+        Object.assign(result.profile, currentProfileInfo);
+        if (gqlPic) result.profile.profilePicUrl = gqlPic;
+      }
+    }
+
+    if (!result) { showErr('fetch.empty'); return; }
+    $('manualPanel').style.display = 'none';
+    if (result.type === 'profile') {
+      renderProfile(result);
+      if (result.profile?.profilePicUrl) resolvedPfpUrl = result.profile.profilePicUrl;
+    } else {
+      if (!result.videoUrl && !result.photos?.length) { showErr('fetch.empty'); return; }
+      render(result, currentRaw);
+    }
+  } finally { btn.disabled = false; }
+}
+
+function renderProfile(data) {
+  resolvedPfpUrl = null;
+  const el = $('profileResult');
+  el.innerHTML = '';
+  $('result').style.display = 'none';
+  $('landing').style.display = 'none';
+
+  const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '';
+
+  const fmtNum = n => n == null ? '' : n >= 1e6 ? (n/1e6).toFixed(1).replace(/\.0$/,'') + 'M' : n >= 1e4 ? Math.round(n/1e3) + 'K' : n >= 1e3 ? (n/1e3).toFixed(1).replace(/\.0$/,'') + 'K' : String(n);
+  const p = data.profile;
+  const igUrl = `https://www.instagram.com/${p.username}/`;
+  const hdr = document.createElement('div');
+  hdr.className = 'profile-header';
+  const stats = [
+    p.postCount != null ? `<span><b>${fmtNum(p.postCount)}</b> posts</span>` : '',
+    p.followerCount != null ? `<span><b>${fmtNum(p.followerCount)}</b> followers</span>` : '',
+    p.followingCount != null ? `<span><b>${fmtNum(p.followingCount)}</b> following</span>` : '',
+  ].filter(Boolean).join('');
+
+  const avatarBtn = document.createElement('button');
+  avatarBtn.className = 'avatar-btn';
+  avatarBtn.title = 'Get full-size profile picture';
+  avatarBtn.addEventListener('click', () => openPfpModal(p.username));
+  const avatarImg = document.createElement('img');
+  avatarImg.className = 'profile-avatar';
+  if (p.profilePicUrl) avatarImg.src = '/dl?url=' + encodeURIComponent(p.profilePicUrl) + '&dl=1';
+  avatarImg.alt = '';
+  avatarImg.onerror = function() { this.style.display = 'none'; };
+  avatarBtn.appendChild(avatarImg);
+  hdr.appendChild(avatarBtn);
+
+  const infoDiv = document.createElement('div');
+  infoDiv.className = 'profile-info';
+  infoDiv.innerHTML = `
+    <a class="profile-username" href="${igUrl}" target="_blank" rel="noopener">@${p.username}</a>
+    ${p.fullName ? `<div class="profile-full-name">${p.fullName}</div>` : ''}
+    ${p.biography ? `<div class="profile-bio">${p.biography.replace(/</g,'&lt;')}</div>` : ''}
+    ${stats ? `<div class="profile-stats">${stats}</div>` : ''}
+  `;
+  hdr.appendChild(infoDiv);
+  el.appendChild(hdr);
+
+  for (const post of data.posts) {
+    const card = document.createElement('div');
+    card.className = 'post-card';
+
+    const meta = document.createElement('div');
+    meta.className = 'post-meta';
+    if (post.createdAt) {
+      const dt = document.createElement('span');
+      dt.className = 'post-date';
+      dt.textContent = fmtDate(post.createdAt);
+      meta.appendChild(dt);
+    }
+    if (post.caption) {
+      const cap = document.createElement('div');
+      cap.className = 'post-caption';
+      const LIMIT = 140;
+      if (post.caption.length > LIMIT) {
+        cap.appendChild(document.createTextNode(post.caption.slice(0, LIMIT).trimEnd() + '… '));
+        const btn = document.createElement('button');
+        btn.className = 'cap-toggle';
+        btn.textContent = 'more';
+        btn.onclick = () => { cap.textContent = post.caption; };
+        cap.appendChild(btn);
+      } else {
+        cap.textContent = post.caption;
+      }
+      meta.appendChild(cap);
+    }
+    if (meta.children.length) card.appendChild(meta);
+
+    const cols = gridCols(post.items.length);
+    const grid = document.createElement('div');
+    grid.className = 'post-grid' + (cols === 1 ? ' single' : '');
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    post.items.forEach((item, i) => {
+      const cell = makePhotoCell(item);
+      if (i === 0 && post.items.length > 1) {
+        const badge = document.createElement('div');
+        badge.className = 'carousel-badge';
+        badge.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="#fff"><rect x="2" y="6" width="14" height="16" rx="2"/><path d="M6 2h14a2 2 0 012 2v14" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        cell.appendChild(badge);
+      }
+      grid.appendChild(cell);
+    });
+    card.appendChild(grid);
+
+    if (post.code) {
+      const lnk = document.createElement('a');
+      lnk.className = 'post-link';
+      lnk.href = `https://www.instagram.com/p/${post.code}/`;
+      lnk.target = '_blank'; lnk.rel = 'noopener';
+      lnk.textContent = `instagram.com/p/${post.code}/`;
+      card.appendChild(lnk);
+    }
+
+    el.appendChild(card);
+  }
+
+  if (data.capped) {
+    const note = document.createElement('p');
+    note.className = 'capped-note';
+    note.textContent = `Showing ${data.posts.length} posts, profile may have more`;
+    el.appendChild(note);
+  }
+
+  el.style.display = 'flex';
+}
+
+async function startStories(path) {
+  const parts = path.split('/').filter(Boolean);
+  const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+  currentRaw = 'https://www.instagram.com/' + path;
+
+  $('goBtn').disabled = true;
+  $('spin').style.display = 'flex';
+  $('btnLabel').textContent = 'Loading';
+  try {
+    if (parts[1] === 'highlights' && parts[2]) {
+      const d = await fetch(`/api/highlights?id=${encodeURIComponent(parts[2])}`).then(r => r.json()).catch(() => null);
+      if (d && !d.error) { render(d, currentRaw); return; }
+      // private — fall through to manual
+      manualType = 'stories-media';
+      const vars = encodeURIComponent(`{"reel_ids":[],"highlight_reel_ids":[${parts[2]}],"precomposed_overlay":false}`);
+      showManual(
+        `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`,
+        'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.',
+      );
+      return;
+    }
+
+    const username = parts[1];
+    if (!username) { showErr('link.unsupported'); return; }
+
+    const d = await fetch(`/api/stories?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null);
+    if (d && !d.error) { render(d, currentRaw); return; }
+    // private or userId lookup failed — fall through to manual
+    const uidRes = await fetch('/api/userid?username=' + encodeURIComponent(username)).then(r => r.json()).catch(() => null);
+    manualType = 'stories-media';
+    if (!uidRes?.userId) {
+      showManual(
+        `https://www.instagram.com/${encodeURIComponent(username)}/?__a=1`,
+        `Couldn't auto-resolve @${username}'s ID. Open this URL while logged into Instagram, find the "id" field in the JSON (it's a long number), and paste it below, just the number, e.g. 69768214207`,
+      );
+      manualType = 'stories-userid';
+      return;
+    }
+    const vars = encodeURIComponent(`{"reel_ids":[${uidRes.userId}],"highlight_reel_ids":[],"precomposed_overlay":false}`);
+    showManual(
+      `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`,
+      'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.',
+    );
+  } catch { showErr('fetch.fail'); }
+  finally {
+    $('goBtn').disabled = false;
+    $('spin').style.display = 'none';
+    $('btnLabel').textContent = 'Get';
+  }
+}
+
+async function startProfile(username) {
+  currentRaw = 'https://www.instagram.com/' + username + '/';
+  $('profileResult').innerHTML = '';
+  $('profileResult').style.display = 'none';
+  $('goBtn').disabled = true;
+  $('spin').style.display = 'flex';
+  $('btnLabel').textContent = 'Loading';
+  try {
+    const [info, posts] = await Promise.all([
+      fetch(`/api/userinfo?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null),
+      fetch(`/api/profile?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null),
+    ]);
+    if (info && !info.error) currentProfileInfo = info;
+    if (posts && !posts.error) {
+      if (info && !info.error) {
+        const gqlPic = posts.profile.profilePicUrl;
+        Object.assign(posts.profile, info);
+        if (gqlPic) posts.profile.profilePicUrl = gqlPic;
+      }
+      renderProfile(posts);
+      return;
+    }
+    // Private or posts failed — show manual panel first, then public profile info below
+    manualType = 'profile';
+    const vars = encodeURIComponent(JSON.stringify({
+      data: { count: 1000, include_relationship_info: true, latest_besties_reel_media: true, latest_reel_media: true },
+      username,
+      '__relay_internal__pv__PolarisIsLoggedInrelayprovider': true,
+      '__relay_internal__pv__PolarisFeedShareMenurelayprovider': true,
+    }));
+    showManual(
+      `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`,
+      `Possible private profile detected. Open this URL in a browser where you're logged into Instagram, then paste the full JSON response below.`,
+    );
+    if (info && !info.error) {
+      renderProfile({ profile: info, posts: [] });
+    }
+  } catch { showErr('fetch.fail'); }
+  finally {
+    $('goBtn').disabled = false;
+    $('spin').style.display = 'none';
+    $('btnLabel').textContent = 'Get';
+  }
+}
+
+function clearInput() {
+  $('urlInput').value = '';
+  $('clearBtn').style.display = 'none';
+  $('result').style.display = 'none';
+  $('profileResult').style.display = 'none';
+  $('manualPanel').style.display = 'none';
+  $('error').style.display = 'none';
+  $('landing').style.display = '';
+  $('urlInput').focus();
+}
+
+
+$('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') navigate();
+  if (e.key === 'Escape') clearInput();
+});
+
+$('urlInput').addEventListener('input', () => {
+  $('clearBtn').style.display = $('urlInput').value ? 'block' : 'none';
+  if ($('result').style.display !== 'none') {
+    $('result').style.display = 'none';
+    $('error').style.display = 'none';
+  }
+});
+
+$('urlInput').addEventListener('paste', e => {
+  const text = (e.clipboardData || window.clipboardData).getData('text').trim();
+  if (/instagram\.com\/(p|reel|reels|stories)\/[^/?]+/.test(text) ||
+      /instagram\.com\/[\w.]{1,30}\/?(?:\?|$)/.test(text)) {
+    e.preventDefault();
+    $('urlInput').value = text;
+    $('clearBtn').style.display = 'block';
+    setTimeout(navigate, 0);
+  }
+});
+
+function openPfpModal(username) {
+  if (resolvedPfpUrl) {
+    window.open(resolvedPfpUrl, '_blank', 'noopener');
+    return;
+  }
+  const vars = encodeURIComponent(JSON.stringify({
+    data: { count: 1000, include_relationship_info: true, latest_besties_reel_media: true, latest_reel_media: true },
+    username,
+    '__relay_internal__pv__PolarisIsLoggedInrelayprovider': true,
+    '__relay_internal__pv__PolarisFeedShareMenurelayprovider': true,
+  }));
+  $('pfpModalLink').href = `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`;
+  $('pfpModalPaste').value = '';
+  $('pfpModal').style.display = 'flex';
+}
+
+function closePfpModal() {
+  $('pfpModal').style.display = 'none';
+}
+
+async function copyPfpUrl() {
+  try {
+    await navigator.clipboard.writeText($('pfpModalLink').href);
+    const btn = $('pfpModalCopyBtn');
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy URL'; btn.classList.remove('copied'); }, 2000);
+  } catch {}
+}
+
+function loadPfpFromPaste() {
+  const raw = $('pfpModalPaste').value.trim();
+  if (!raw) return;
+  let json;
+  try { json = JSON.parse(raw); } catch { return; }
+  const user =
+    json?.data?.xdt_api__v1__feed__user_timeline_graphql_connection?.edges?.[0]?.node?.user ??
+    json?.data?.user ??
+    json?.graphql?.user;
+  const picUrl =
+    user?.hd_profile_pic_url_info?.url ??
+    (() => {
+      const versions = user?.hd_profile_pic_versions ?? [];
+      return versions.filter(v => v?.url).reduce((a, b) =>
+        ((b?.width??0)*(b?.height??0)) > ((a?.width??0)*(a?.height??0)) ? b : a, null)?.url;
+    })() ??
+    user?.profile_pic_url_hd;
+  if (picUrl) {
+    resolvedPfpUrl = picUrl;
+    const img = document.querySelector('#profileResult .profile-avatar');
+    if (img) img.src = '/dl?url=' + encodeURIComponent(picUrl) + '&dl=1';
+  }
+  closePfpModal();
+}
+
+$('urlInput').focus();
+
+const path = location.pathname.slice(1);
+if (path && !['api', 'dl', 'favicon'].some(p => path.startsWith(p)) && !/\.[a-zA-Z0-9]+$/.test(path)) {
+  let src;
+  if (['p/', 'reel/', 'reels/'].some(k => path.startsWith(k))) {
+    src = 'https://www.instagram.com/' + path;
+    $('urlInput').value = src;
+    $('clearBtn').style.display = 'block';
+    go();
+  } else if (path.startsWith('stories/')) {
+    src = 'https://www.instagram.com/' + path;
+    $('urlInput').value = src;
+    $('clearBtn').style.display = 'block';
+    startStories(path);
+  } else if (/^[\w.]{1,30}\/?$/.test(path)) {
+    const username = path.replace(/\/$/, '');
+    src = 'https://www.instagram.com/' + username + '/';
+    $('urlInput').value = src;
+    $('clearBtn').style.display = 'block';
+    startProfile(username);
+  } else {
+    src = /^https?:\/\//.test(path) ? path : 'https://' + path;
+    $('urlInput').value = src;
+    $('clearBtn').style.display = 'block';
+    go();
+  }
+}
+</script>
+</body>
+</html>
