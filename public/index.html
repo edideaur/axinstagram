@@ -27,21 +27,121 @@
     --text: #e8e8e8;
     --muted: #444;
     --muted2: #282828;
+    --accent: #fff;
     --r: 5px;
     font-family: 'IBM Plex Mono', monospace;
     font-size: 13px;
   }
-  html, body { background: var(--bg); color: var(--text); min-height: 100vh; }
+  [data-theme="white"] {
+    --bg: #f8f8f8; --surface: #ffffff; --border: #e8e8e8; --border2: #ddd;
+    --text: #1a1a1a; --muted: #888; --muted2: #ccc; --accent: #000;
+  }
+  [data-theme="dracula"] {
+    --bg: #282a36; --surface: #44475a; --border: #6272a4; --border2: #44475a;
+    --text: #f8f8f2; --muted: #6272a4; --muted2: #44475a; --accent: #ff79c6;
+  }
+  [data-theme="solarized"] {
+    --bg: #002b36; --surface: #073642; --border: #586e75; --border2: #073642;
+    --text: #eee8d5; --muted: #839496; --muted2: #073642; --accent: #268bd2;
+  }
+  [data-theme="dim"] {
+    --bg: #15202b; --surface: #192734; --border: #253341; --border2: #38444d;
+    --text: #fff; --muted: #8899a6; --muted2: #253341; --accent: #1d9bf0;
+  }
+  [data-theme="midnight"] {
+    --bg: #0b0e14; --surface: #11151c; --border: #1a202c; --border2: #2d3748;
+    --text: #e2e8f0; --muted: #718096; --muted2: #1a202c; --accent: #6366f1;
+  }
+  [data-theme="latte"] {
+    --bg: #eff1f5; --surface: #e6e9ef; --border: #dce0e8; --border2: #ccd0da;
+    --text: #4c4f69; --muted: #7c7f93; --muted2: #acb0be; --accent: #1e66f5;
+  }
+  [data-theme="nord"] {
+    --bg: #2e3440; --surface: #3b4252; --border: #434c5e; --border2: #4c566a;
+    --text: #eceff4; --muted: #d8dee9; --muted2: #4c566a; --accent: #88c0d0;
+  }
+  [data-theme="gruvbox"] {
+    --bg: #282828; --surface: #32302f; --border: #3c3836; --border2: #504945;
+    --text: #fbf1c7; --muted: #a89984; --muted2: #3c3836; --accent: #fabd2f;
+  }
+  [data-theme="everforest"] {
+    --bg: #2b3339; --surface: #323c41; --border: #3a454a; --border2: #445055;
+    --text: #d3c6aa; --muted: #9da9a0; --muted2: #3a454a; --accent: #a7c080;
+  }
+  [data-theme="rosepine"] {
+    --bg: #191724; --surface: #1f1d2e; --border: #26233a; --border2: #524f67;
+    --text: #e0def4; --muted: #908caa; --muted2: #26233a; --accent: #ebbcba;
+  }
+  @media (prefers-color-scheme: light) {
+    [data-theme="system"] {
+      --bg: #f8f8f8; --surface: #ffffff; --border: #e8e8e8; --border2: #ddd;
+      --text: #1a1a1a; --muted: #888; --muted2: #ccc; --accent: #000;
+    }
+  }
+
+  html, body { background: var(--bg); color: var(--text); min-height: 100vh; transition: background .2s, color .2s; }
   body { display: flex; flex-direction: column; align-items: center; padding: 3.5rem 1rem 5rem; }
   .wrap { width: 100%; max-width: 580px; }
 
   .logo { font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); transition: color .15s; text-decoration: none; }
-  .logo:hover { color: #fff; }
+  .logo:hover { color: var(--accent); }
   .logo-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2.25rem; }
-  .top-social { display: flex; gap: .6rem; }
-  .top-social a { color: var(--muted); transition: color .15s; }
-  .top-social a:hover { color: #fff; }
-  .top-social svg { width: 18px; height: 18px; fill: currentColor; }
+  
+  .top-social { display: flex; gap: .8rem; align-items: center; }
+  .top-social a, .settings-trigger { color: var(--muted); transition: color .15s; cursor: pointer; background: none; border: none; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .top-social a:hover, .settings-trigger:hover { color: var(--accent); }
+  .top-social svg, .settings-trigger svg, .settings-social svg { width: 18px; height: 18px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .top-social svg[fill=currentColor], .settings-social svg[fill=currentColor] { fill: currentColor; stroke: none; }
+
+  /* Settings Panel */
+  #settingsModal { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: none; opacity: 0; transition: opacity .3s; }
+  #settingsPanel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 320px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    transform: translateX(100%); transition: transform .3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column; padding: 2.5rem 1.75rem; gap: 2rem;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.15); overflow-y: auto;
+  }
+  #settingsModal.open { display: block; opacity: 1; }
+  #settingsModal.open #settingsPanel { transform: translateX(0); }
+  .settings-title { font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-bottom: .25rem; }
+  .settings-group { display: flex; flex-direction: column; gap: 1.25rem; }
+  .settings-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .05em; }
+  .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .theme-btn {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r);
+    color: var(--text); padding: 10px; font-family: inherit; font-size: 10px; font-weight: 600;
+    cursor: pointer; transition: border-color .15s, background .15s; text-transform: uppercase;
+  }
+  .theme-btn:hover { border-color: var(--muted); }
+  .theme-btn.active { border-color: var(--accent); background: var(--surface); }
+
+  .config-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; cursor: pointer; }
+  .config-label { display: flex; flex-direction: column; gap: 2px; }
+  .config-label span { font-size: 11px; font-weight: 600; color: var(--text); }
+  .config-label small { font-size: 9px; color: var(--muted); }
+  
+  .switch {
+    position: relative; display: inline-block; width: 32px; height: 18px; flex-shrink: 0;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; cursor: pointer; inset: 0;
+    background-color: var(--border2); border-radius: 18px;
+    transition: .2s;
+  }
+  .slider:before {
+    position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
+    background-color: var(--text); border-radius: 50%; transition: .2s;
+  }
+  input:checked + .slider { background-color: var(--accent); }
+  input:checked + .slider:before { transform: translateX(14px); background-color: var(--bg); }
+
+  .settings-footer { margin-top: auto; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 1.5rem; }
+  .settings-social { display: flex; gap: 1.2rem; justify-content: center; align-items: center; }
+  .settings-social a { color: var(--muted); transition: color .15s; display: flex; align-items: center; justify-content: center; }
+  .settings-social a:hover { color: var(--accent); }
+  .settings-note { font-size: 10px; color: var(--muted2); text-align: center; line-height: 1.5; }
 
   .input-row { display: flex; gap: 6px; }
   .input-wrap { flex: 1; min-width: 0; position: relative; display: flex; }
@@ -51,15 +151,15 @@
     color: var(--text); font-family: inherit; font-size: 13px; padding: 10px 32px 10px 12px;
     outline: none; transition: border-color .15s;
   }
-  input[type=text]:focus { border-color: #383838; }
+  input[type=text]:focus { border-color: var(--muted); }
   input[type=text]::placeholder { color: var(--muted2); }
   .clear-btn {
     position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: #383838; cursor: pointer;
+    background: none; border: none; color: var(--muted2); cursor: pointer;
     font-size: 14px; line-height: 1; padding: 2px 4px; display: none;
     transition: color .15s;
   }
-  .clear-btn:hover { color: #888; }
+  .clear-btn:hover { color: var(--muted); }
 
   .btn {
     background: var(--text); border: none; border-radius: var(--r);
@@ -70,17 +170,17 @@
   }
   .btn:hover:not(:disabled) { opacity: .75; }
   .btn:disabled { opacity: .3; cursor: default; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: #555; }
-  .btn-ghost:hover:not(:disabled) { border-color: #383838; color: var(--text); opacity: 1; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--muted); }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--muted); color: var(--text); opacity: 1; }
 
   .spinner {
     width: 12px; height: 12px;
-    border: 1.5px solid rgba(0,0,0,.25); border-top-color: #000;
+    border: 1.5px solid rgba(128,128,128,.25); border-top-color: var(--text);
     border-radius: 50%; animation: spin .5s linear infinite; flex-shrink: 0;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #error { font-size: 12px; color: #484848; padding: 10px 0 0; display: none; }
+  #error { font-size: 12px; color: var(--muted); padding: 10px 0 0; display: none; }
 
   #result { display: none; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
 
@@ -90,18 +190,18 @@
     padding: 8px 8px 8px 12px;
   }
   .embed-url {
-    flex: 1; font-size: 12px; color: #505050;
+    flex: 1; font-size: 12px; color: var(--muted);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     cursor: pointer; user-select: all; transition: color .15s;
   }
-  .embed-url:hover { color: #888; }
+  .embed-url:hover { color: var(--text); }
   .copy-btn {
     flex-shrink: 0; background: transparent; border: 1px solid var(--border2); border-radius: 3px;
-    color: #484848; cursor: pointer; font-family: inherit; font-size: 10px;
+    color: var(--muted); cursor: pointer; font-family: inherit; font-size: 10px;
     font-weight: 600; letter-spacing: .08em; padding: 5px 10px;
     text-transform: uppercase; white-space: nowrap; transition: border-color .15s, color .15s;
   }
-  .copy-btn:hover { border-color: #383838; color: var(--text); }
+  .copy-btn:hover { border-color: var(--muted); color: var(--text); }
   .copy-btn.copied { color: #4a9a6a; border-color: #1e3a2a; }
   .manual-actions .copy-btn { border-radius: var(--r); padding: 10px 18px; font-size: 11px; }
 
@@ -117,7 +217,7 @@
   }
   .photo-cell {
     position: relative; aspect-ratio: 1; overflow: hidden;
-    background: #0e0e0e; display: block; text-decoration: none;
+    background: var(--surface); display: block; text-decoration: none;
   }
   .photo-cell img, .photo-cell video { width: 100%; height: 100%; object-fit: cover; display: block; }
   .photo-cell .display-img { transition: transform .2s; }
@@ -139,12 +239,12 @@
     width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
   }
 
-  .photo-hint { font-size: 11px; color: #383838; }
+  .photo-hint { font-size: 11px; color: var(--muted); }
 
   .actions { display: flex; gap: 6px; }
 
   #manualPanel { display: none; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
-  .manual-instr { font-size: 12px; color: #505050; line-height: 1.7; }
+  .manual-instr { font-size: 12px; color: var(--muted); line-height: 1.7; }
   .manual-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   textarea#manualPaste, textarea#pfpModalPaste, textarea#highlightsPaste, textarea#hlViewerPaste {
     width: 100%; min-height: 80px; resize: vertical;
@@ -152,7 +252,7 @@
     color: var(--text); font-family: inherit; font-size: 12px; padding: 10px 12px;
     outline: none; transition: border-color .15s;
   }
-  textarea#manualPaste:focus, textarea#pfpModalPaste:focus, textarea#highlightsPaste:focus, textarea#hlViewerPaste:focus { border-color: #383838; }
+  textarea#manualPaste:focus, textarea#pfpModalPaste:focus, textarea#highlightsPaste:focus, textarea#hlViewerPaste:focus { border-color: var(--muted); }
   textarea#manualPaste::placeholder, textarea#pfpModalPaste::placeholder, textarea#highlightsPaste::placeholder, textarea#hlViewerPaste::placeholder { color: var(--muted2); }
 
   #profileResult { display: none; flex-direction: column; gap: 1.5rem; margin-top: 1.25rem; }
@@ -166,15 +266,15 @@
   }
   .profile-info { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
   .profile-username { font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
-  .profile-username:hover { color: #aaa; }
-  .profile-full-name { font-size: 12px; color: #888; }
-  .profile-bio { font-size: 12px; color: #666; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
-  .profile-stats { display: flex; gap: .9rem; font-size: 11px; color: #444; flex-wrap: wrap; margin-top: .1rem; }
+  .profile-username:hover { color: var(--muted); }
+  .profile-full-name { font-size: 12px; color: var(--muted); }
+  .profile-bio { font-size: 12px; color: var(--muted); line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .profile-stats { display: flex; gap: .9rem; font-size: 11px; color: var(--muted); flex-wrap: wrap; margin-top: .1rem; }
   .profile-stats b { color: var(--text); font-weight: 600; }
   .post-card { display: flex; flex-direction: column; gap: .5rem; }
   .post-meta { display: flex; align-items: baseline; gap: .75rem; }
-  .post-date { font-size: 10px; color: #383838; flex-shrink: 0; }
-  .post-caption { font-size: 12px; color: #666; line-height: 1.5; word-break: break-word; }
+  .post-date { font-size: 10px; color: var(--muted2); flex-shrink: 0; }
+  .post-caption { font-size: 12px; color: var(--muted); line-height: 1.5; word-break: break-word; }
   .post-grid {
     display: grid; gap: 2px;
     border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
@@ -182,32 +282,32 @@
   .post-grid.single .photo-cell { aspect-ratio: unset; }
   .post-grid.single .photo-cell .display-img { height: auto; max-height: 60vh; object-fit: contain; }
   .post-grid.single .photo-cell .og-img { height: 100%; }
-  .post-link { font-size: 10px; color: #2e2e2e; text-decoration: none; letter-spacing: .06em; }
-  .post-link:hover { color: #666; }
-  .cap-toggle { background: none; border: none; color: #555; font-family: inherit; font-size: inherit; cursor: pointer; padding: 0; }
+  .post-link { font-size: 10px; color: var(--muted2); text-decoration: none; letter-spacing: .06em; }
+  .post-link:hover { color: var(--muted); }
+  .cap-toggle { background: none; border: none; color: var(--muted); font-family: inherit; font-size: inherit; cursor: pointer; padding: 0; }
   .cap-toggle:hover { color: var(--text); }
   .carousel-badge {
     position: absolute; top: 5px; right: 5px;
     background: rgba(0,0,0,.6); border-radius: 3px;
     width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
   }
-  .capped-note { font-size: 11px; color: #383838; text-align: center; padding-top: .5rem; }
+  .capped-note { font-size: 11px; color: var(--muted); text-align: center; padding-top: .5rem; }
 
   .highlights-section { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
   .highlights-row { display: flex; flex-wrap: wrap; gap: 10px; }
   .highlight-item { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 0; }
   .highlight-cover { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border2); background: var(--surface); display: block; flex-shrink: 0; }
-  .highlight-title { font-size: 9px; color: #555; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .03em; }
+  .highlight-title { font-size: 9px; color: var(--muted); max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .03em; }
 
-  .tagline { font-size: 11px; color: #2a2a2a; letter-spacing: .04em; margin-bottom: 2rem; }
+  .tagline { font-size: 11px; color: var(--muted2); letter-spacing: .04em; margin-bottom: 2rem; }
 
   #landing { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.4rem; }
   .landing-steps { display: flex; flex-direction: column; gap: .6rem; }
-  .l-step { display: flex; align-items: baseline; gap: .85rem; font-size: 12px; color: #383838; line-height: 1.5; }
-  .l-step > span { font-size: 9px; font-weight: 700; color: #222; letter-spacing: .12em; min-width: 1.6rem; flex-shrink: 0; }
-  .l-label { font-size: 9px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: #222; }
+  .l-step { display: flex; align-items: baseline; gap: .85rem; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .l-step > span { font-size: 9px; font-weight: 700; color: var(--accent); letter-spacing: .12em; min-width: 1.6rem; flex-shrink: 0; }
+  .l-label { font-size: 9px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
   .platform-pills { display: flex; flex-wrap: wrap; gap: 4px; }
-  .pill { font-size: 10px; color: #2a2a2a; border: 1px solid #191919; border-radius: 3px; padding: 3px 9px; letter-spacing: .04em; }
+  .pill { font-size: 10px; color: var(--muted2); border: 1px solid var(--border); border-radius: 3px; padding: 3px 9px; letter-spacing: .04em; }
 
   .avatar-btn { background: none; border: none; cursor: pointer; padding: 0; border-radius: 50%; flex-shrink: 0; transition: opacity .15s; }
   .avatar-btn:hover { opacity: .8; }
@@ -223,13 +323,13 @@
   .footer { margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
   .social-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
   .social-link {
-    color: #666; text-decoration: none; display: flex; align-items: center; gap: 7px;
+    color: var(--muted); text-decoration: none; display: flex; align-items: center; gap: 7px;
     font-size: 11px; font-weight: 500; transition: color .15s;
-    border: 1px solid #222; border-radius: var(--r); padding: 6px 10px;
+    border: 1px solid var(--border); border-radius: var(--r); padding: 6px 10px;
   }
-  .social-link:hover { color: #ccc; border-color: #3a3a3a; }
+  .social-link:hover { color: var(--text); border-color: var(--muted); }
   .social-link svg { width: 13px; height: 13px; fill: currentColor; flex-shrink: 0; }
-  .cta { font-size: 11px; color: #383838; }
+  .cta { font-size: 11px; color: var(--muted2); }
   </style>
   <script async defer data-domain="axinstagram.com" data-api="https://plausible.canine.tools/api/event" src="https://plausible.canine.tools/js/script.js"></script>
   <script>
@@ -238,20 +338,104 @@
     plausible.init();
   </script>
 </head>
-<body>
+<body data-theme="system">
+<div id="settingsModal" onclick="if(event.target===this)closeSettings()">
+  <div id="settingsPanel">
+    <div class="settings-title">Appearance</div>
+    <div class="settings-group">
+      <div class="settings-label">Theme</div>
+      <div class="theme-grid">
+        <button class="theme-btn" id="theme-black" onclick="setTheme('black')">Black</button>
+        <button class="theme-btn" id="theme-white" onclick="setTheme('white')">White</button>
+        <button class="theme-btn" id="theme-dracula" onclick="setTheme('dracula')">Dracula</button>
+        <button class="theme-btn" id="theme-solarized" onclick="setTheme('solarized')">Solarized</button>
+        <button class="theme-btn" id="theme-dim" onclick="setTheme('dim')">Dim</button>
+        <button class="theme-btn" id="theme-midnight" onclick="setTheme('midnight')">Midnight</button>
+        <button class="theme-btn" id="theme-latte" onclick="setTheme('latte')">Latte</button>
+        <button class="theme-btn" id="theme-nord" onclick="setTheme('nord')">Nord</button>
+        <button class="theme-btn" id="theme-gruvbox" onclick="setTheme('gruvbox')">Gruvbox</button>
+        <button class="theme-btn" id="theme-everforest" onclick="setTheme('everforest')">Everforest</button>
+        <button class="theme-btn" id="theme-rosepine" onclick="setTheme('rosepine')">Rose Pine</button>
+        <button class="theme-btn" id="theme-system" onclick="setTheme('system')">System</button>
+      </div>
+    </div>
+
+    <div class="settings-title">Configuration</div>
+    <div class="settings-group">
+      <label class="config-row">
+        <div class="config-label">
+          <span>Detailed stats</span>
+          <small>Show follower/post counts</small>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="cfg-stats" onchange="setCfg('stats', this.checked)">
+          <span class="slider"></span>
+        </div>
+      </label>
+      <label class="config-row">
+        <div class="config-label">
+          <span>Auto-play videos</span>
+          <small>Play videos on hover or load</small>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="cfg-autoplay" onchange="setCfg('autoplay', this.checked)">
+          <span class="slider"></span>
+        </div>
+      </label>
+      <label class="config-row">
+        <div class="config-label">
+          <span>High quality thumbnails</span>
+          <small>Use original images for grid</small>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="cfg-hdthumbs" onchange="setCfg('hdthumbs', this.checked)">
+          <span class="slider"></span>
+        </div>
+      </label>
+      <label class="config-row">
+        <div class="config-label">
+          <span>Open original by default</span>
+          <small>Open IG link when clicking media</small>
+        </div>
+        <div class="switch">
+          <input type="checkbox" id="cfg-clickig" onchange="setCfg('clickig', this.checked)">
+          <span class="slider"></span>
+        </div>
+      </label>
+    </div>
+
+    <div class="settings-footer">
+      <div class="settings-social">
+        <a href="https://instagram.com/edideaur" target="_blank" rel="noopener" title="@edideaur">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        </a>
+        <a href="https://ko-fi.com/edideaur/" target="_blank" rel="noopener" title="ko-fi">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+        </a>
+        <a href="https://github.com/edideaur/axinstagram/" target="_blank" rel="noopener" title="source">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        </a>
+      </div>
+      <div class="settings-note">AXINSTAGRAM<br>made with ♥ by edideaur</div>
+    </div>
+  </div>
+</div>
 <div class="wrap">
   <div class="logo-row">
     <a class="logo" href="/">axinstagram</a>
     <div class="top-social">
       <a href="https://instagram.com/edideaur" target="_blank" rel="noopener" title="@edideaur">
-        <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
       </a>
       <a href="https://ko-fi.com/edideaur/" target="_blank" rel="noopener" title="ko-fi">
-        <svg viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
       </a>
       <a href="https://github.com/edideaur/axinstagram/" target="_blank" rel="noopener" title="source">
-        <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.259-5.373-12-12-12"/></svg>
       </a>
+      <button class="settings-trigger" onclick="openSettings()" title="Settings">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.72V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
     </div>
   </div>
 
@@ -384,15 +568,15 @@
   <div class="footer">
     <div class="social-row">
       <a class="social-link" href="https://instagram.com/edideaur" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
         @edideaur
       </a>
       <a class="social-link" href="https://ko-fi.com/edideaur/" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.658-3.734 4.352.24 7.422-2.831 6.649-6.916zm-11.062 3.511c-1.246 1.453-4.011 3.976-4.011 3.976s-.121.119-.31.023c-.076-.057-.108-.09-.108-.09-.443-.441-3.368-3.049-4.034-3.954-.709-.965-1.041-2.7-.091-3.71.951-1.01 3.005-1.086 4.363.407 0 0 1.565-1.782 3.468-.963 1.904.82 1.832 3.011.723 4.311zm6.173.478c-.928.116-1.682.028-1.682.028V7.284h1.77s1.971.551 1.971 2.638c0 1.913-.985 2.667-2.059 3.015z"/></svg>
         ko-fi
       </a>
       <a class="social-link" href="https://github.com/edideaur/axinstagram/" target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
         source
       </a>
     </div>
@@ -541,14 +725,16 @@ function makePhotoCell(p) {
   const a = document.createElement('a');
   a.target = '_blank'; a.rel = 'noopener'; a.className = 'photo-cell';
   if (p.isVideo) {
-    a.href = p.full;
+    if (config.clickig) a.href = 'https://instagram.com/p/' + (p.code || '');
+    else a.href = p.full;
+    
     const vid = document.createElement('video');
     vid.className = 'display-img';
     vid.src = p.full;
     if (p.thumb) vid.poster = p.thumb;
     vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
     addDlFallback(vid);
-    a.addEventListener('mouseenter', () => vid.play().catch(() => {}));
+    a.addEventListener('mouseenter', () => { if (config.autoplay) vid.play().catch(() => {}); });
     a.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
     a.addEventListener('click', e => { if (vid.paused) { e.preventDefault(); vid.play().catch(() => {}); } });
     a.appendChild(vid);
@@ -556,10 +742,12 @@ function makePhotoCell(p) {
     b.innerHTML = '<svg width="9" height="9" viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg>';
     a.appendChild(b);
   } else {
-    a.href = p.full;
+    if (config.clickig) a.href = 'https://instagram.com/p/' + (p.code || '');
+    else a.href = p.full;
+    
     const disp = document.createElement('img');
     disp.className = 'display-img';
-    disp.src = p.thumb ?? p.full; disp.loading = 'lazy'; disp.alt = '';
+    disp.src = (config.hdthumbs ? p.full : (p.thumb ?? p.full)); disp.loading = 'lazy'; disp.alt = '';
     addDlFallback(disp);
     a.appendChild(disp);
     const og = document.createElement('img');
@@ -605,6 +793,7 @@ function render(d, raw) {
   } else {
     const vidEl = $('vid');
     vidEl.src = d.videoUrl ?? '';
+    if (config.autoplay) vidEl.autoplay = true;
     addDlFallback(vidEl);
     $('vidWrap').style.display = 'block';
     $('dlBtn').textContent = 'Save';
@@ -915,13 +1104,12 @@ function renderHighlights(highlights) {
     a.addEventListener('click', () => openHighlight(h.id, h.title));
     const img = document.createElement('img');
     img.className = 'highlight-cover';
-    if (h.coverUrl) img.src = proxyImg(h.coverUrl);
+    if (h.coverUrl) img.src = h.coverUrl;
     img.alt = '';
     a.appendChild(img);
     const t = document.createElement('div');
     t.className = 'highlight-title';
     t.textContent = h.title;
-    a.appendChild(t);
     row.appendChild(a);
   });
   section.appendChild(row);
@@ -973,17 +1161,17 @@ function parseGQLPost(json) {
         const disp = n.display_resources ?? [];
         const thumb = smallestRes(disp)?.src ?? n.display_url;
         const fullImg = biggestRes(disp)?.src ?? n.display_url;
-        if (n.video_url || n.is_video) return { thumb, full: n.video_url ?? fullImg, isVideo: true };
-        return { thumb, full: fullImg };
+        if (n.video_url || n.is_video) return { thumb, full: n.video_url ?? fullImg, isVideo: true, code: media.shortcode || media.code };
+        return { thumb, full: fullImg, code: media.shortcode || media.code };
       });
     if (photos.length) return { photos, isPhoto: true };
   }
-  if (media.video_url) return { videoUrl: media.video_url };
+  if (media.video_url) return { videoUrl: media.video_url, code: media.shortcode || media.code };
   if (media.display_url) {
     const disp = media.display_resources ?? [];
     const full = biggestRes(disp)?.src ?? media.display_url;
     const thumb = smallestRes(disp)?.src ?? media.display_url;
-    return { photos: [{ full, thumb }], isPhoto: true };
+    return { photos: [{ full, thumb, code: media.shortcode || media.code }], isPhoto: true };
   }
   return null;
 }
@@ -1004,25 +1192,26 @@ function parseGQLProfile(json) {
   }) : null;
   const getUrl = c => c?.url ?? c?.src;
 
-  const extractItem = item => {
+  const extractItem = (item, code) => {
     const cands = item.image_versions2?.candidates ?? [];
     const thumb = getUrl(byArea(cands, false));
     const fullImg = getUrl(byArea(cands, true));
     if (item.video_versions?.length) {
       const sorted = [...item.video_versions].sort((a, b) => b.width * b.height - a.width * a.height);
       const qualities = sorted.map(v => ({ url: v.url, label: v.width + '×' + v.height }));
-      return { thumb: fullImg, full: sorted[0].url, qualities, isVideo: true };
+      return { thumb: fullImg, full: sorted[0].url, qualities, isVideo: true, code };
     }
     const sortedC = [...cands].sort((a, b) => b.width * b.height - a.width * a.height);
     const qualities = sortedC.length > 1 ? sortedC.map(c => ({ url: c.url, label: c.width + '×' + c.height })) : undefined;
-    return { thumb, full: fullImg, qualities };
+    return { thumb: fullImg, full: fullImg, qualities, code };
   };
 
   const posts = edges.map(({ node }) => {
+    const code = node.code ?? node.shortcode ?? '';
     const items = (node.carousel_media?.length ? node.carousel_media : [node])
-      .map(extractItem).filter(p => p.full || p.thumb);
+      .map(item => extractItem(item, code)).filter(p => p.full || p.thumb);
     return {
-      code: node.code ?? node.shortcode ?? '',
+      code,
       caption: node.caption?.text ?? '',
       createdAt: node.taken_at ?? node.caption?.created_at ?? null,
       items,
@@ -1137,7 +1326,7 @@ function renderProfile(data) {
     <a class="profile-username" href="${igUrl}" target="_blank" rel="noopener">@${p.username}</a>
     ${p.fullName ? `<div class="profile-full-name">${p.fullName}</div>` : ''}
     ${p.biography ? `<div class="profile-bio">${p.biography.replace(/</g,'&lt;')}</div>` : ''}
-    ${stats ? `<div class="profile-stats">${stats}</div>` : ''}
+    ${stats ? `<div class="profile-stats" style="display:${config.stats ? 'flex' : 'none'}">${stats}</div>` : ''}
   `;
   hdr.appendChild(infoDiv);
   el.appendChild(hdr);
@@ -1421,6 +1610,50 @@ function loadPfpFromPaste() {
   }
   closePfpModal();
 }
+
+function openSettings() {
+  $('settingsModal').classList.add('open');
+}
+
+function closeSettings() {
+  $('settingsModal').classList.remove('open');
+}
+
+function setTheme(theme) {
+  document.body.setAttribute('data-theme', theme);
+  localStorage.setItem('ax:theme', theme);
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `theme-${theme.replace('-', '')}`);
+  });
+}
+
+const config = {
+  stats: true,
+  autoplay: true,
+  hdthumbs: false,
+  clickig: false,
+  ...JSON.parse(localStorage.getItem('ax:config') || '{}')
+};
+
+function setCfg(k, v) {
+  config[k] = v;
+  localStorage.setItem('ax:config', JSON.stringify(config));
+  if (k === 'stats') {
+    const stats = document.querySelector('.profile-stats');
+    if (stats) stats.style.display = v ? 'flex' : 'none';
+  }
+  if ((k === 'hdthumbs' || k === 'clickig') && (state.photos || state.videoUrl)) {
+    render(state, currentRaw);
+  }
+}
+
+// Init
+const savedTheme = localStorage.getItem('ax:theme') || 'system';
+setTheme(savedTheme);
+Object.entries(config).forEach(([k, v]) => {
+  const el = $('cfg-' + k);
+  if (el) el.checked = v;
+});
 
 $('urlInput').focus();
 
