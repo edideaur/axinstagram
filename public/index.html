@@ -360,6 +360,10 @@
         <span class="pill">FB Messenger</span>
       </div>
     </div>
+    <div id="helperNotice">
+      <div class="l-label" style="margin-bottom:.5rem">helper</div>
+      <p id="helperText" style="font-size:12px;color:#383838;line-height:1.6">install <a id="helperInstallLink" href="/ax-helper.user.js" style="color:#555;text-decoration:none;border-bottom:1px solid #2a2a2a">ax-helper.user.js</a> in tampermonkey or violentmonkey to auto-fetch private posts, stories &amp; highlights without pasting json.</p>
+    </div>
   </div>
 
   <div id="pfpModal" style="display:none" onclick="if(event.target===this)closePfpModal()">
@@ -406,6 +410,27 @@ let currentUserId = null;
 let currentHlPhotos = null;
 let currentHlId = null;
 const hlCache = {};
+let __axFetchId = 0;
+
+function tryAutoFetch(url) {
+  if (!window.__axHelperReady) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const id = ++__axFetchId;
+    const timer = setTimeout(() => {
+      document.removeEventListener('ax:response', handler);
+      resolve(null);
+    }, 20000);
+    function handler(e) {
+      if (e.detail.id !== id) return;
+      clearTimeout(timer);
+      document.removeEventListener('ax:response', handler);
+      try { resolve(e.detail.data ? JSON.parse(e.detail.data) : null); }
+      catch { resolve(null); }
+    }
+    document.addEventListener('ax:response', handler);
+    document.dispatchEvent(new CustomEvent('ax:fetch', { detail: { id, url } }));
+  });
+}
 let resolvedPfpUrl = null;
 
 const ERR = {
@@ -471,6 +496,12 @@ async function go() {
         }
       } catch {}
       if (apiUrl) {
+        const autoData = await tryAutoFetch(apiUrl);
+        const autoResult = autoData ? parseGQLPost(autoData) : null;
+        if (autoResult && (autoResult.videoUrl || autoResult.photos?.length)) {
+          render(autoResult, clean);
+          return;
+        }
         currentRaw = clean;
         manualType = 'post';
         showManual(apiUrl, 'This post may be private. Open this URL in a browser where you\'re logged into Instagram, copy the full JSON response, and paste it below.');
@@ -491,6 +522,45 @@ function proxyImg(url) {
   return url ? '/dl?url=' + encodeURIComponent(url) + '&view=1' : url;
 }
 
+function addDlFallback(el) {
+  el.addEventListener('error', function () {
+    const src = el.src;
+    if (src && !src.includes('/dl?url=')) el.src = proxyImg(src);
+  }, { once: true });
+}
+
+const CDN_RE = /^https?:\/\/[^/]*(?:cdninstagram\.com|fbcdn\.net)\//;
+
+function rewriteCdnAttrs(el) {
+  if (el.nodeType !== 1) return;
+  if (el.tagName === 'IMG' || el.tagName === 'VIDEO') {
+    const src = el.getAttribute('src');
+    if (src && CDN_RE.test(src)) el.setAttribute('src', proxyImg(src));
+  }
+  if (el.tagName === 'VIDEO') {
+    const poster = el.getAttribute('poster');
+    if (poster && CDN_RE.test(poster)) el.setAttribute('poster', proxyImg(poster));
+  }
+  el.querySelectorAll('img[src],video[src],video[poster]').forEach(child => {
+    const s = child.getAttribute('src');
+    if (s && CDN_RE.test(s)) child.setAttribute('src', proxyImg(s));
+    if (child.tagName === 'VIDEO') {
+      const p = child.getAttribute('poster');
+      if (p && CDN_RE.test(p)) child.setAttribute('poster', proxyImg(p));
+    }
+  });
+}
+
+new MutationObserver(muts => {
+  for (const m of muts) {
+    if (m.type === 'childList') m.addedNodes.forEach(rewriteCdnAttrs);
+    else if (m.type === 'attributes') rewriteCdnAttrs(m.target);
+  }
+}).observe(document.body, {
+  childList: true, subtree: true,
+  attributes: true, attributeFilter: ['src', 'poster'],
+});
+
 function makePhotoCell(p) {
   const a = document.createElement('a');
   a.target = '_blank'; a.rel = 'noopener'; a.className = 'photo-cell';
@@ -498,9 +568,10 @@ function makePhotoCell(p) {
     a.href = p.full;
     const vid = document.createElement('video');
     vid.className = 'display-img';
-    vid.src = p.full;
+    vid.src = proxyImg(p.full);
     if (p.thumb) vid.poster = proxyImg(p.thumb);
     vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
+    addDlFallback(vid);
     a.addEventListener('mouseenter', () => vid.play().catch(() => {}));
     a.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
     a.addEventListener('click', e => { if (vid.paused) { e.preventDefault(); vid.play().catch(() => {}); } });
@@ -513,9 +584,11 @@ function makePhotoCell(p) {
     const disp = document.createElement('img');
     disp.className = 'display-img';
     disp.src = proxyImg(p.thumb ?? p.full); disp.loading = 'lazy'; disp.alt = '';
+    addDlFallback(disp);
     a.appendChild(disp);
     const og = document.createElement('img');
     og.className = 'og-img'; og.src = proxyImg(p.full); og.alt = '';
+    addDlFallback(og);
     a.appendChild(og);
   }
   return a;
@@ -554,7 +627,9 @@ function render(d, raw) {
       $('dlBtn').textContent = 'Save';
     }
   } else {
-    $('vid').src = d.videoUrl ?? '';
+    const vidEl = $('vid');
+    vidEl.src = d.videoUrl ?? '';
+    addDlFallback(vidEl);
     $('vidWrap').style.display = 'block';
     $('dlBtn').textContent = 'Save';
     sel.style.display = 'none';
@@ -644,9 +719,12 @@ function clearManual() {
   }
 }
 
-function showHighlightsPanel() {
+async function showHighlightsPanel() {
   if (!currentUserId) return;
   const url = `https://www.instagram.com/graphql/query/?doc_id=9814547265267853&variables=${encodeURIComponent(JSON.stringify({ user_id: currentUserId }))}`;
+  const autoData = await tryAutoFetch(url);
+  const highlights = autoData ? parseHighlightsGQL(autoData) : null;
+  if (highlights?.length) { renderHighlights(highlights); return; }
   $('highlightsInstr').textContent = 'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.';
   $('highlightsLink').href = url;
   $('highlightsPaste').value = '';
@@ -671,7 +749,7 @@ function renderHlPhotos(photos) {
   $('hlViewerActions').style.display = 'flex';
 }
 
-async function openHighlight(id, title) {
+async function openHighlight(id, title, skipApi = false) {
   currentHlId = id;
   currentHlPhotos = null;
   $('hlViewerTitle').textContent = title || 'highlight';
@@ -686,14 +764,24 @@ async function openHighlight(id, title) {
   }
 
   $('hlViewerContent').innerHTML = '<p style="color:#444;font-size:12px;padding:.25rem 0">Loading…</p>';
-  const d = await fetch(`/api/highlights?id=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null);
-  if (d && !d.error && d.photos?.length) {
-    hlCache[id] = d.photos;
-    renderHlPhotos(d.photos);
+  if (!skipApi) {
+    const d = await fetch(`/api/highlights?id=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null);
+    if (d && !d.error && d.photos?.length) {
+      hlCache[id] = d.photos;
+      renderHlPhotos(d.photos);
+      return;
+    }
+  }
+  const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+  const vars = encodeURIComponent(JSON.stringify({ reel_ids: [], highlight_reel_ids: [id], precomposed_overlay: false }));
+  const url = `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`;
+  const autoData = await tryAutoFetch(url);
+  const autoResult = autoData ? parseGQLStories(autoData) : null;
+  if (autoResult?.photos?.length) {
+    hlCache[id] = autoResult.photos;
+    renderHlPhotos(autoResult.photos);
   } else {
-    const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
-    const vars = encodeURIComponent(JSON.stringify({ reel_ids: [], highlight_reel_ids: [id], precomposed_overlay: false }));
-    $('hlViewerManualLink').href = `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`;
+    $('hlViewerManualLink').href = url;
     $('hlViewerPaste').value = '';
     $('hlViewerContent').innerHTML = '';
     $('hlViewerPasteSection').style.display = 'flex';
@@ -715,23 +803,29 @@ async function openStories(username) {
   }
 
   $('hlViewerContent').innerHTML = '<p style="color:#444;font-size:12px;padding:.25rem 0">Loading…</p>';
-  const d = await fetch(`/api/stories?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null);
-  if (d && !d.error && d.photos?.length) {
-    hlCache[currentHlId] = d.photos;
-    renderHlPhotos(d.photos);
-  } else {
-    const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
-    const uid = currentUserId;
-    const vars = uid
-      ? encodeURIComponent(JSON.stringify({ reel_ids: [uid], highlight_reel_ids: [], precomposed_overlay: false }))
-      : null;
-    $('hlViewerManualLink').href = vars
-      ? `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`
-      : `https://www.instagram.com/stories/${encodeURIComponent(username)}/`;
-    $('hlViewerPaste').value = '';
-    $('hlViewerContent').innerHTML = '';
-    $('hlViewerPasteSection').style.display = 'flex';
+  const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+  let uid = currentUserId;
+  if (!uid) {
+    const uidRes = await fetch('/api/userid?username=' + encodeURIComponent(username)).then(r => r.json()).catch(() => null);
+    uid = uidRes?.userId ? String(uidRes.userId) : null;
   }
+  const vars = uid
+    ? encodeURIComponent(JSON.stringify({ reel_ids: [uid], highlight_reel_ids: [], precomposed_overlay: false }))
+    : null;
+  const url = vars ? `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}` : null;
+  if (url) {
+    const autoData = await tryAutoFetch(url);
+    const autoResult = autoData ? parseGQLStories(autoData) : null;
+    if (autoResult?.photos?.length) {
+      hlCache[currentHlId] = autoResult.photos;
+      renderHlPhotos(autoResult.photos);
+      return;
+    }
+  }
+  $('hlViewerManualLink').href = url || `https://www.instagram.com/stories/${encodeURIComponent(username)}/`;
+  $('hlViewerPaste').value = '';
+  $('hlViewerContent').innerHTML = '';
+  $('hlViewerPasteSection').style.display = 'flex';
 }
 
 function closeHlViewer() {
@@ -905,7 +999,8 @@ function parseGQLPost(json) {
   if (media.display_url) {
     const disp = media.display_resources ?? [];
     const full = biggestRes(disp)?.src ?? media.display_url;
-    return { videoUrl: full, thumbUrl: full, isPhoto: true };
+    const thumb = smallestRes(disp)?.src ?? media.display_url;
+    return { photos: [{ full, thumb }], isPhoto: true };
   }
   return null;
 }
@@ -1043,6 +1138,7 @@ function renderProfile(data) {
   if (p.profilePicUrl) avatarImg.src = '/dl?url=' + encodeURIComponent(p.profilePicUrl) + '&dl=1';
   avatarImg.alt = '';
   avatarImg.onerror = function() { this.style.display = 'none'; };
+  addDlFallback(avatarImg);
   avatarBtn.appendChild(avatarImg);
   hdr.appendChild(avatarBtn);
 
@@ -1166,13 +1262,8 @@ async function startStories(path) {
     if (parts[1] === 'highlights' && parts[2]) {
       const d = await fetch(`/api/highlights?id=${encodeURIComponent(parts[2])}`).then(r => r.json()).catch(() => null);
       if (d && !d.error) { render(d, currentRaw); return; }
-      // private — fall through to manual
-      manualType = 'stories-media';
-      const vars = encodeURIComponent(`{"reel_ids":[],"highlight_reel_ids":[${parts[2]}],"precomposed_overlay":false}`);
-      showManual(
-        `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`,
-        'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.',
-      );
+      // private — open in hlViewer (auto-fetch + paste fallback), skip redundant API call
+      await openHighlight(parts[2], 'highlight', true);
       return;
     }
 
@@ -1181,22 +1272,8 @@ async function startStories(path) {
 
     const d = await fetch(`/api/stories?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null);
     if (d && !d.error) { render(d, currentRaw); return; }
-    // private or userId lookup failed — fall through to manual
-    const uidRes = await fetch('/api/userid?username=' + encodeURIComponent(username)).then(r => r.json()).catch(() => null);
-    manualType = 'stories-media';
-    if (!uidRes?.userId) {
-      showManual(
-        `https://www.instagram.com/${encodeURIComponent(username)}/?__a=1`,
-        `Couldn't auto-resolve @${username}'s ID. Open this URL while logged into Instagram, find the "id" field in the JSON (it's a long number), and paste it below, just the number, e.g. 69768214207`,
-      );
-      manualType = 'stories-userid';
-      return;
-    }
-    const vars = encodeURIComponent(`{"reel_ids":[${uidRes.userId}],"highlight_reel_ids":[],"precomposed_overlay":false}`);
-    showManual(
-      `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`,
-      'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.',
-    );
+    // private — open in hlViewer (auto-fetch + paste fallback)
+    await openStories(username);
   } catch { showErr('fetch.fail'); }
   finally {
     $('goBtn').disabled = false;
@@ -1227,7 +1304,7 @@ async function startProfile(username) {
       renderProfile(posts);
       return;
     }
-    // Private or posts failed — show manual panel first, then public profile info below
+    // Private or posts failed
     manualType = 'profile';
     const vars = encodeURIComponent(JSON.stringify({
       data: { count: 1000, include_relationship_info: true, latest_besties_reel_media: true, latest_reel_media: true },
@@ -1235,8 +1312,22 @@ async function startProfile(username) {
       '__relay_internal__pv__PolarisIsLoggedInrelayprovider': true,
       '__relay_internal__pv__PolarisFeedShareMenurelayprovider': true,
     }));
+    const profileUrl = `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`;
+    const autoData = await tryAutoFetch(profileUrl);
+    if (autoData) {
+      const autoResult = parseGQLProfile(autoData);
+      if (autoResult) {
+        if (info && !info.error) {
+          const gqlPic = autoResult.profile.profilePicUrl;
+          Object.assign(autoResult.profile, info);
+          if (gqlPic) autoResult.profile.profilePicUrl = gqlPic;
+        }
+        renderProfile(autoResult);
+        return;
+      }
+    }
     showManual(
-      `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`,
+      profileUrl,
       `Possible private profile detected. Open this URL in a browser where you're logged into Instagram, then paste the full JSON response below.`,
     );
     if (info && !info.error) {
@@ -1343,6 +1434,11 @@ function loadPfpFromPaste() {
 }
 
 $('urlInput').focus();
+
+if (window.__axHelperReady) {
+  $('helperText').innerHTML = 'ax-helper is active, private content loads automatically.';
+  $('helperText').style.color = '#2e4a2e';
+}
 
 const path = location.pathname.slice(1);
 if (path && !['api', 'dl', 'favicon'].some(p => path.startsWith(p)) && !/\.[a-zA-Z0-9]+$/.test(path)) {
