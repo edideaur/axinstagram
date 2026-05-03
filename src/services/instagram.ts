@@ -72,7 +72,6 @@ async function tryHtmlEmbed(
 
     if (!html) continue;
 
-    // Pattern 1: React server-render init payload contains contextJSON
     try {
       const raw = html.match(/"init",\[\],\[(.*?)\]\],/s)?.[1];
       if (raw) {
@@ -84,7 +83,6 @@ async function tryHtmlEmbed(
       }
     } catch {}
 
-    // Pattern 2: contextJSON appears as a standalone escaped string anywhere in the page
     try {
       const ctxRaw = html.match(
         /"contextJSON"\s*:\s*"((?:[^"\\]|\\.)*)"/s,
@@ -100,11 +98,9 @@ async function tryHtmlEmbed(
       }
     } catch {}
 
-    // Pattern 3: gql_data block directly in the HTML (older embed format)
     try {
       const idx = html.indexOf('"gql_data":');
       if (idx !== -1) {
-        // Walk backwards to find the enclosing object's opening brace
         let depth = 0,
           start = -1;
         for (let i = idx; i >= 0; i--) {
@@ -370,7 +366,6 @@ function extractFromHtmlEmbed(
 export async function handleInstagram(url: URL): Promise<MediaResult> {
   const parts = url.pathname.split("/").filter(Boolean);
 
-  // /share/{shareId}
   if (parts[0] === "share") {
     const shareId = parts[1];
     if (!shareId) return { error: "fetch.empty" };
@@ -382,7 +377,6 @@ export async function handleInstagram(url: URL): Promise<MediaResult> {
     return handleInstagram(new URL(res.url));
   }
 
-  // /p/{id}/ or /reel/{id}/
   let postId: string | null = null;
   if (
     (parts[0] === "p" || parts[0] === "reel" || parts[0] === "reels") &&
@@ -393,21 +387,18 @@ export async function handleInstagram(url: URL): Promise<MediaResult> {
 
   if (!postId) return { error: "link.unsupported" };
 
-  // Strategy 1: mobile API (anonymous)
   const mobileData = await tryMobileApi(postId);
   if (mobileData) {
     const result = extractFromMobileData(mobileData, postId);
     if (result?.videoUrl || result?.photos?.length) return result;
   }
 
-  // Strategy 2: HTML embed
   const htmlData = await tryHtmlEmbed(postId);
   if (htmlData) {
     const result = extractFromHtmlEmbed(htmlData, postId);
     if (result?.videoUrl || result?.photos?.length) return result;
   }
 
-  // Strategy 3: anonymous GQL
   const gqlData = await tryGQL(postId);
   if (gqlData) {
     const result = extractFromGQL(gqlData, postId);

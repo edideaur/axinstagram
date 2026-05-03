@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { isAllowedDlHost, forceSmallInstagramUrl } from "./dl";
 
-// ── isAllowedDlHost ───────────────────────────────────────────────────────────
-
 describe("isAllowedDlHost", () => {
   test("allows cdninstagram.com subdomains", () => {
     expect(
@@ -46,8 +44,6 @@ describe("isAllowedDlHost", () => {
     );
   });
 });
-
-// ── forceSmallInstagramUrl ────────────────────────────────────────────────────
 
 describe("forceSmallInstagramUrl", () => {
   test("replaces size segment in pathname", () => {

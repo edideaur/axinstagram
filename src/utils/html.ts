@@ -8,7 +8,6 @@ interface EmbedOptions {
   imgIndex?: number;
 }
 
-// Discord reads theme-color for the embed accent strip
 const THEME_COLOR = "#000000";
 
 export function buildEmbedHTML({
@@ -55,7 +54,6 @@ export function buildEmbedHTML({
     }
   }
 
-  // Photo embed
   if (isPhoto) {
     const idx = imgIndex !== undefined ? imgIndex - 1 : 0;
     const photoUrl = photos
@@ -80,7 +78,6 @@ export function buildEmbedHTML({
     );
   }
 
-  // Video embed
   const vid = videoUrl!;
   const tags = [
     ...base,
@@ -90,7 +87,7 @@ export function buildEmbedHTML({
     `<meta property="og:video:type" content="video/mp4">`,
     `<meta property="og:video:width" content="${width}">`,
     `<meta property="og:video:height" content="${height}">`,
-    // Twitter / X player card
+
     `<meta name="twitter:card" content="player">`,
     `<meta name="twitter:player" content="${esc(vid)}">`,
     `<meta name="twitter:player:stream" content="${esc(vid)}">`,

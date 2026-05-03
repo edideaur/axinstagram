@@ -11,7 +11,6 @@ function proxyPhotoThumbs(result: MediaResult, origin: string): MediaResult {
     };
   }
   if (result.isPhoto && result.videoUrl) {
-    // Normalize single image into photos array so the UI handles it uniformly
     return {
       ...result,
       photos: [

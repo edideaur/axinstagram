@@ -7,8 +7,6 @@ import {
   reelItems,
 } from "./instagram";
 
-// ── biggest / smallest ────────────────────────────────────────────────────────
-
 describe("biggest", () => {
   const cands = [
     { width: 150, height: 150, url: "small.jpg" },
@@ -35,8 +33,6 @@ describe("smallest", () => {
     expect(smallest(cands)).toBe("small.jpg");
   });
 });
-
-// ── extractStoriesItems ───────────────────────────────────────────────────────
 
 describe("extractStoriesItems", () => {
   test("photo item — thumb is smallest, full is biggest", () => {
@@ -107,8 +103,6 @@ describe("extractStoriesItems", () => {
     expect(extractStoriesItems(items).photos).toHaveLength(2);
   });
 });
-
-// ── extractFromGQL ────────────────────────────────────────────────────────────
 
 describe("extractFromGQL", () => {
   test("returns null for empty data", () => {
@@ -182,8 +176,6 @@ describe("extractFromGQL", () => {
     expect(result.photos).toHaveLength(1);
   });
 });
-
-// ── reelItems ─────────────────────────────────────────────────────────────────
 
 describe("reelItems", () => {
   const mockItems = [{ image_versions2: { candidates: [] } }];

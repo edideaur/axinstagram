@@ -7,10 +7,11 @@
     "deploy": "wrangler pages deploy public",
     "cf-typegen": "wrangler types",
     "test": "bun test",
-    "format": "prettier --write \"src/**/*.ts\" \"functions/**/*.ts\""
+    "format": "bun scripts/remove-comments.js && prettier --write \"src/**/*.ts\" \"functions/**/*.ts\""
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241224.0",
+    "glob": "^13.0.6",
     "prettier": "^3.8.3",
     "typescript": "^5.7.2",
     "wrangler": "^3.101.0"
