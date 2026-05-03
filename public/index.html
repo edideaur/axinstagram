@@ -146,14 +146,14 @@
   #manualPanel { display: none; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
   .manual-instr { font-size: 12px; color: #505050; line-height: 1.7; }
   .manual-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  textarea#manualPaste, textarea#pfpModalPaste {
+  textarea#manualPaste, textarea#pfpModalPaste, textarea#highlightsPaste, textarea#hlViewerPaste {
     width: 100%; min-height: 80px; resize: vertical;
     background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r);
     color: var(--text); font-family: inherit; font-size: 12px; padding: 10px 12px;
     outline: none; transition: border-color .15s;
   }
-  textarea#manualPaste:focus, textarea#pfpModalPaste:focus { border-color: #383838; }
-  textarea#manualPaste::placeholder, textarea#pfpModalPaste::placeholder { color: var(--muted2); }
+  textarea#manualPaste:focus, textarea#pfpModalPaste:focus, textarea#highlightsPaste:focus, textarea#hlViewerPaste:focus { border-color: #383838; }
+  textarea#manualPaste::placeholder, textarea#pfpModalPaste::placeholder, textarea#highlightsPaste::placeholder, textarea#hlViewerPaste::placeholder { color: var(--muted2); }
 
   #profileResult { display: none; flex-direction: column; gap: 1.5rem; margin-top: 1.25rem; }
   .profile-header {
@@ -193,6 +193,12 @@
   }
   .capped-note { font-size: 11px; color: #383838; text-align: center; padding-top: .5rem; }
 
+  .highlights-section { display: flex; flex-direction: column; gap: .5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .highlights-row { display: flex; flex-wrap: wrap; gap: 10px; }
+  .highlight-item { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; cursor: pointer; padding: 0; }
+  .highlight-cover { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border2); background: var(--surface); display: block; flex-shrink: 0; }
+  .highlight-title { font-size: 9px; color: #555; max-width: 60px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: .03em; }
+
   .tagline { font-size: 11px; color: #2a2a2a; letter-spacing: .04em; margin-bottom: 2rem; }
 
   #landing { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.4rem; }
@@ -206,8 +212,13 @@
   .avatar-btn { background: none; border: none; cursor: pointer; padding: 0; border-radius: 50%; flex-shrink: 0; transition: opacity .15s; }
   .avatar-btn:hover { opacity: .8; }
 
-  #pfpModal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
-  #pfpModalBox { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 1.25rem; max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: .75rem; }
+  #pfpModal, #highlightsModal, #hlViewerModal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+  #pfpModalBox, #highlightsModalBox { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 1.25rem; max-width: 480px; width: 100%; display: flex; flex-direction: column; gap: .75rem; }
+  #hlViewerBox { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--r); padding: 1.25rem; max-width: 580px; width: 100%; display: flex; flex-direction: column; gap: .75rem; max-height: 82vh; overflow-y: auto; }
+  .hl-viewer-header { display: flex; align-items: center; justify-content: space-between; }
+  .hl-viewer-header span { font-size: 12px; font-weight: 600; color: var(--text); letter-spacing: .04em; }
+  .hl-close-btn { background: none; border: none; color: #555; cursor: pointer; font-size: 14px; line-height: 1; padding: 2px 6px; transition: color .15s; }
+  .hl-close-btn:hover { color: var(--text); }
 
   .footer { margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
   .social-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
@@ -278,6 +289,45 @@
   </div>
 
   <div id="profileResult"></div>
+
+  <div id="hlViewerModal" style="display:none" onclick="if(event.target===this)closeHlViewer()">
+    <div id="hlViewerBox">
+      <div class="hl-viewer-header">
+        <span id="hlViewerTitle"></span>
+        <button class="hl-close-btn" onclick="closeHlViewer()">✕</button>
+      </div>
+      <div id="hlViewerContent"></div>
+      <div id="hlViewerActions" class="actions" style="display:none">
+        <button class="btn" id="hlViewerSaveBtn" onclick="saveHlAll()">Save all</button>
+      </div>
+      <div id="hlViewerPasteSection" style="display:none;flex-direction:column;gap:.75rem">
+        <p class="manual-instr">Couldn't load automatically. Open this URL while logged into Instagram, then paste the JSON response below.</p>
+        <div class="manual-actions">
+          <a class="btn" id="hlViewerManualLink" target="_blank" rel="noopener">Open in Instagram ↗</a>
+          <button class="copy-btn" id="hlViewerCopyBtn" onclick="copyHlUrl()">Copy URL</button>
+        </div>
+        <textarea id="hlViewerPaste" placeholder="Paste the JSON response here…" spellcheck="false"></textarea>
+        <div class="actions">
+          <button class="btn" onclick="loadHlFromPaste()">Load</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="highlightsModal" style="display:none" onclick="if(event.target===this)closeHighlightsPanel()">
+    <div id="highlightsModalBox">
+      <p class="manual-instr" id="highlightsInstr"></p>
+      <div class="manual-actions">
+        <a class="btn" id="highlightsLink" target="_blank" rel="noopener">Open in Instagram ↗</a>
+        <button class="copy-btn" id="highlightsCopyBtn" onclick="copyHighlightsUrl()">Copy URL</button>
+      </div>
+      <textarea id="highlightsPaste" placeholder="Paste the JSON response here…" spellcheck="false"></textarea>
+      <div class="actions">
+        <button class="btn" id="highlightsLoadBtn" onclick="parseHighlights()">Load</button>
+        <button class="btn btn-ghost" onclick="closeHighlightsPanel()">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <div id="manualPanel">
     <p class="manual-instr" id="manualInstr"></p>
@@ -352,6 +402,10 @@ let state = { videoUrl: null, photos: null, isPhoto: false };
 let manualType = 'post';
 let currentRaw = '';
 let currentProfileInfo = null;
+let currentUserId = null;
+let currentHlPhotos = null;
+let currentHlId = null;
+const hlCache = {};
 let resolvedPfpUrl = null;
 
 const ERR = {
@@ -433,6 +487,10 @@ async function go() {
   }
 }
 
+function proxyImg(url) {
+  return url ? '/dl?url=' + encodeURIComponent(url) + '&view=1' : url;
+}
+
 function makePhotoCell(p) {
   const a = document.createElement('a');
   a.target = '_blank'; a.rel = 'noopener'; a.className = 'photo-cell';
@@ -441,7 +499,7 @@ function makePhotoCell(p) {
     const vid = document.createElement('video');
     vid.className = 'display-img';
     vid.src = p.full;
-    if (p.thumb) vid.poster = p.thumb;
+    if (p.thumb) vid.poster = proxyImg(p.thumb);
     vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
     a.addEventListener('mouseenter', () => vid.play().catch(() => {}));
     a.addEventListener('mouseleave', () => { vid.pause(); vid.currentTime = 0; });
@@ -454,10 +512,10 @@ function makePhotoCell(p) {
     a.href = p.full;
     const disp = document.createElement('img');
     disp.className = 'display-img';
-    disp.src = p.thumb ?? p.full; disp.loading = 'lazy'; disp.alt = '';
+    disp.src = proxyImg(p.thumb ?? p.full); disp.loading = 'lazy'; disp.alt = '';
     a.appendChild(disp);
     const og = document.createElement('img');
-    og.className = 'og-img'; og.src = p.full; og.alt = '';
+    og.className = 'og-img'; og.src = proxyImg(p.full); og.alt = '';
     a.appendChild(og);
   }
   return a;
@@ -584,6 +642,215 @@ function clearManual() {
   if ($('result').style.display === 'none' && $('profileResult').style.display === 'none') {
     $('landing').style.display = '';
   }
+}
+
+function showHighlightsPanel() {
+  if (!currentUserId) return;
+  const url = `https://www.instagram.com/graphql/query/?doc_id=9814547265267853&variables=${encodeURIComponent(JSON.stringify({ user_id: currentUserId }))}`;
+  $('highlightsInstr').textContent = 'Open this URL in a browser where you\'re logged into Instagram, then paste the full JSON response below.';
+  $('highlightsLink').href = url;
+  $('highlightsPaste').value = '';
+  $('highlightsModal').style.display = 'flex';
+}
+
+function closeHighlightsPanel() {
+  $('highlightsModal').style.display = 'none';
+}
+
+function renderHlPhotos(photos) {
+  const content = $('hlViewerContent');
+  content.innerHTML = '';
+  const n = photos.length;
+  const cols = gridCols(n);
+  const grid = document.createElement('div');
+  grid.className = 'post-grid' + (cols === 1 ? ' single' : '');
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  photos.forEach(p => grid.appendChild(makePhotoCell(p)));
+  content.appendChild(grid);
+  currentHlPhotos = photos;
+  $('hlViewerActions').style.display = 'flex';
+}
+
+async function openHighlight(id, title) {
+  currentHlId = id;
+  currentHlPhotos = null;
+  $('hlViewerTitle').textContent = title || 'highlight';
+  $('hlViewerActions').style.display = 'none';
+  $('hlViewerPasteSection').style.display = 'none';
+  $('hlViewerModal').style.display = 'flex';
+
+  if (hlCache[id]) {
+    $('hlViewerContent').innerHTML = '';
+    renderHlPhotos(hlCache[id]);
+    return;
+  }
+
+  $('hlViewerContent').innerHTML = '<p style="color:#444;font-size:12px;padding:.25rem 0">Loading…</p>';
+  const d = await fetch(`/api/highlights?id=${encodeURIComponent(id)}`).then(r => r.json()).catch(() => null);
+  if (d && !d.error && d.photos?.length) {
+    hlCache[id] = d.photos;
+    renderHlPhotos(d.photos);
+  } else {
+    const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+    const vars = encodeURIComponent(JSON.stringify({ reel_ids: [], highlight_reel_ids: [id], precomposed_overlay: false }));
+    $('hlViewerManualLink').href = `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`;
+    $('hlViewerPaste').value = '';
+    $('hlViewerContent').innerHTML = '';
+    $('hlViewerPasteSection').style.display = 'flex';
+  }
+}
+
+async function openStories(username) {
+  currentHlId = 'stories:' + username;
+  currentHlPhotos = null;
+  $('hlViewerTitle').textContent = 'stories';
+  $('hlViewerActions').style.display = 'none';
+  $('hlViewerPasteSection').style.display = 'none';
+  $('hlViewerModal').style.display = 'flex';
+
+  if (hlCache[currentHlId]) {
+    $('hlViewerContent').innerHTML = '';
+    renderHlPhotos(hlCache[currentHlId]);
+    return;
+  }
+
+  $('hlViewerContent').innerHTML = '<p style="color:#444;font-size:12px;padding:.25rem 0">Loading…</p>';
+  const d = await fetch(`/api/stories?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null);
+  if (d && !d.error && d.photos?.length) {
+    hlCache[currentHlId] = d.photos;
+    renderHlPhotos(d.photos);
+  } else {
+    const HASH = 'de8017ee0a7c9c45ec4260733d81ea31';
+    const uid = currentUserId;
+    const vars = uid
+      ? encodeURIComponent(JSON.stringify({ reel_ids: [uid], highlight_reel_ids: [], precomposed_overlay: false }))
+      : null;
+    $('hlViewerManualLink').href = vars
+      ? `https://www.instagram.com/graphql/query/?query_hash=${HASH}&variables=${vars}`
+      : `https://www.instagram.com/stories/${encodeURIComponent(username)}/`;
+    $('hlViewerPaste').value = '';
+    $('hlViewerContent').innerHTML = '';
+    $('hlViewerPasteSection').style.display = 'flex';
+  }
+}
+
+function closeHlViewer() {
+  $('hlViewerModal').style.display = 'none';
+}
+
+async function copyHlUrl() {
+  try {
+    await navigator.clipboard.writeText($('hlViewerManualLink').href);
+    const btn = $('hlViewerCopyBtn');
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy URL'; btn.classList.remove('copied'); }, 2000);
+  } catch {}
+}
+
+function loadHlFromPaste() {
+  const raw = $('hlViewerPaste').value.trim();
+  if (!raw) return;
+  let json;
+  try { json = JSON.parse(raw); } catch { return; }
+  const result = parseGQLStories(json);
+  if (!result?.photos?.length) return;
+  if (currentHlId) hlCache[currentHlId] = result.photos;
+  $('hlViewerPasteSection').style.display = 'none';
+  renderHlPhotos(result.photos);
+}
+
+async function saveHlAll() {
+  if (!currentHlPhotos) return;
+  const btn = $('hlViewerSaveBtn');
+  btn.disabled = true;
+  try {
+    for (let i = 0; i < currentHlPhotos.length; i++) {
+      const url = currentHlPhotos[i].full;
+      const proxy = `/dl?url=${encodeURIComponent(url)}&dl=1`;
+      try {
+        const res = await fetch(proxy);
+        if (!res.ok) { window.open(url, '_blank'); continue; }
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = blob.type.startsWith('video') ? 'media.mp4' : 'media.jpg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      } catch { window.open(url, '_blank'); }
+      if (i < currentHlPhotos.length - 1) await new Promise(r => setTimeout(r, 400));
+    }
+  } finally { btn.disabled = false; }
+}
+
+async function copyHighlightsUrl() {
+  try {
+    await navigator.clipboard.writeText($('highlightsLink').href);
+    const btn = $('highlightsCopyBtn');
+    btn.textContent = 'Copied!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy URL'; btn.classList.remove('copied'); }, 2000);
+  } catch {}
+}
+
+function parseHighlightsGQL(json) {
+  const edges = json?.data?.highlights?.edges;
+  if (!edges?.length) return null;
+  return edges.map(({ node }) => ({
+    id: String(node.id ?? '').replace('highlight:', ''),
+    title: node.title ?? '',
+    coverUrl: node.cover_media?.cropped_image_version?.url ?? '',
+  })).filter(h => h.id);
+}
+
+function parseHighlights() {
+  const raw = $('highlightsPaste').value.trim();
+  if (!raw) return;
+  const btn = $('highlightsLoadBtn');
+  btn.disabled = true;
+  try {
+    let json;
+    try { json = JSON.parse(raw); } catch { showErr('Invalid JSON, make sure you copied the full response.'); return; }
+    const highlights = parseHighlightsGQL(json);
+    if (!highlights?.length) { showErr('No highlights found in the response.'); return; }
+    closeHighlightsPanel();
+    renderHighlights(highlights);
+  } finally { btn.disabled = false; }
+}
+
+function renderHighlights(highlights) {
+  const el = $('profileResult');
+  const existing = el.querySelector('.highlights-section');
+  if (existing) existing.remove();
+  const hlBtn = $('hlBtn');
+  if (hlBtn) hlBtn.style.display = 'none';
+
+  const section = document.createElement('div');
+  section.className = 'highlights-section';
+  const label = document.createElement('div');
+  label.className = 'l-label';
+  label.style.marginBottom = '.4rem';
+  label.textContent = 'highlights';
+  section.appendChild(label);
+  const row = document.createElement('div');
+  row.className = 'highlights-row';
+  highlights.forEach(h => {
+    const a = document.createElement('button');
+    a.className = 'highlight-item';
+    a.addEventListener('click', () => openHighlight(h.id, h.title));
+    const img = document.createElement('img');
+    img.className = 'highlight-cover';
+    if (h.coverUrl) img.src = proxyImg(h.coverUrl);
+    img.alt = '';
+    a.appendChild(img);
+    const t = document.createElement('div');
+    t.className = 'highlight-title';
+    t.textContent = h.title;
+    a.appendChild(t);
+    row.appendChild(a);
+  });
+  section.appendChild(row);
+  const firstPost = el.querySelector('.post-card');
+  if (firstPost) el.insertBefore(section, firstPost);
+  else el.appendChild(section);
 }
 
 async function copyManualUrl() {
@@ -748,6 +1015,8 @@ async function parseManual() {
 function renderProfile(data) {
   resolvedPfpUrl = null;
   const el = $('profileResult');
+  const savedHighlights = el.querySelector('.highlights-section');
+  if (savedHighlights) savedHighlights.remove();
   el.innerHTML = '';
   $('result').style.display = 'none';
   $('landing').style.display = 'none';
@@ -787,6 +1056,34 @@ function renderProfile(data) {
   `;
   hdr.appendChild(infoDiv);
   el.appendChild(hdr);
+
+  const profileBtns = document.createElement('div');
+  profileBtns.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap';
+
+  const storiesBtn = document.createElement('button');
+  storiesBtn.className = 'btn btn-ghost';
+  storiesBtn.style.cssText = 'font-size:10px;padding:7px 12px';
+  storiesBtn.textContent = 'Get Stories';
+  storiesBtn.addEventListener('click', () => openStories(p.username));
+  profileBtns.appendChild(storiesBtn);
+
+  if (currentUserId) {
+    const hlBtn = document.createElement('button');
+    hlBtn.id = 'hlBtn';
+    hlBtn.className = 'btn btn-ghost';
+    hlBtn.style.cssText = 'font-size:10px;padding:7px 12px';
+    hlBtn.textContent = 'Get Highlights';
+    hlBtn.addEventListener('click', showHighlightsPanel);
+    profileBtns.appendChild(hlBtn);
+  }
+
+  el.appendChild(profileBtns);
+
+  if (savedHighlights) {
+    const hlBtn = $('hlBtn');
+    if (hlBtn) hlBtn.style.display = 'none';
+    el.appendChild(savedHighlights);
+  }
 
   for (const post of data.posts) {
     const card = document.createElement('div');
@@ -920,7 +1217,7 @@ async function startProfile(username) {
       fetch(`/api/userinfo?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null),
       fetch(`/api/profile?username=${encodeURIComponent(username)}`).then(r => r.json()).catch(() => null),
     ]);
-    if (info && !info.error) currentProfileInfo = info;
+    if (info && !info.error) { currentProfileInfo = info; if (info.id) currentUserId = String(info.id); }
     if (posts && !posts.error) {
       if (info && !info.error) {
         const gqlPic = posts.profile.profilePicUrl;
@@ -959,8 +1256,10 @@ function clearInput() {
   $('result').style.display = 'none';
   $('profileResult').style.display = 'none';
   $('manualPanel').style.display = 'none';
+  $('highlightsModal').style.display = 'none';
   $('error').style.display = 'none';
   $('landing').style.display = '';
+  currentUserId = null;
   $('urlInput').focus();
 }
 

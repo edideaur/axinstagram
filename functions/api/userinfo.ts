@@ -44,6 +44,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
     user.profile_pic_url;
 
   return Response.json({
+    id: user.id,
     username: user.username,
     fullName: user.full_name,
     biography: user.biography,

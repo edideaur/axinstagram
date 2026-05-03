@@ -61,22 +61,21 @@ export function buildEmbedHTML({
     const photoUrl = photos
       ? (photos[idx]?.full ?? photos[0]?.full)
       : videoUrl!;
+    const proxiedPhotoUrl = dl(workerUrl, photoUrl);
 
     const tags = [
       ...base,
       `<meta property="og:type" content="website">`,
-      `<meta property="og:image" content="${esc(photoUrl)}">`,
-      `<meta property="og:image:secure_url" content="${esc(photoUrl)}">`,
+      `<meta property="og:image" content="${esc(proxiedPhotoUrl)}">`,
+      `<meta property="og:image:secure_url" content="${esc(proxiedPhotoUrl)}">`,
       `<meta property="og:image:type" content="image/jpeg">`,
-      `<meta property="og:image:width" content="${width}">`,
-      `<meta property="og:image:height" content="${height}">`,
       `<meta name="twitter:card" content="summary_large_image">`,
-      `<meta name="twitter:image" content="${esc(photoUrl)}">`,
+      `<meta name="twitter:image" content="${esc(proxiedPhotoUrl)}">`,
     ];
 
     return page(
       tags,
-      `<img src="${esc(photoUrl)}" style="max-width:100%;display:block;margin:0 auto">`,
+      `<img src="${esc(proxiedPhotoUrl)}" style="max-width:100%;display:block;margin:0 auto">`,
       sourceURL,
     );
   }
@@ -101,10 +100,9 @@ export function buildEmbedHTML({
   ];
 
   if (!minimal && thumbUrl) {
-    tags.push(`<meta property="og:image" content="${esc(thumbUrl)}">`);
-    tags.push(`<meta property="og:image:width" content="${width}">`);
-    tags.push(`<meta property="og:image:height" content="${height}">`);
-    tags.push(`<meta name="twitter:image" content="${esc(thumbUrl)}">`);
+    const proxiedThumbUrl = dl(workerUrl, thumbUrl);
+    tags.push(`<meta property="og:image" content="${esc(proxiedThumbUrl)}">`);
+    tags.push(`<meta name="twitter:image" content="${esc(proxiedThumbUrl)}">`);
   }
 
   return page(
@@ -146,4 +144,9 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function dl(workerUrl: string, imageUrl: string): string {
+  const origin = new URL(workerUrl).origin;
+  return `${origin}/dl?url=${encodeURIComponent(imageUrl)}&view=1`;
 }
