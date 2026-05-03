@@ -524,42 +524,18 @@ function proxyImg(url) {
 
 function addDlFallback(el) {
   el.addEventListener('error', function () {
-    const src = el.src;
-    if (src && !src.includes('/dl?url=')) el.src = proxyImg(src);
+    const src = el.src || el.getAttribute('src');
+    if (src && !src.includes('/dl?url=') && !src.startsWith('blob:')) {
+      console.log('Direct load failed, falling back to proxy:', src);
+      if (el.tagName === 'VIDEO' && el.getAttribute('poster')) {
+         const poster = el.getAttribute('poster');
+         if (poster && !poster.includes('/dl?url=')) el.setAttribute('poster', proxyImg(poster));
+      }
+      el.src = proxyImg(src);
+      if (el.tagName === 'VIDEO') el.load();
+    }
   }, { once: true });
 }
-
-const CDN_RE = /^https?:\/\/[^/]*(?:cdninstagram\.com|fbcdn\.net)\//;
-
-function rewriteCdnAttrs(el) {
-  if (el.nodeType !== 1) return;
-  if (el.tagName === 'IMG' || el.tagName === 'VIDEO') {
-    const src = el.getAttribute('src');
-    if (src && CDN_RE.test(src)) el.setAttribute('src', proxyImg(src));
-  }
-  if (el.tagName === 'VIDEO') {
-    const poster = el.getAttribute('poster');
-    if (poster && CDN_RE.test(poster)) el.setAttribute('poster', proxyImg(poster));
-  }
-  el.querySelectorAll('img[src],video[src],video[poster]').forEach(child => {
-    const s = child.getAttribute('src');
-    if (s && CDN_RE.test(s)) child.setAttribute('src', proxyImg(s));
-    if (child.tagName === 'VIDEO') {
-      const p = child.getAttribute('poster');
-      if (p && CDN_RE.test(p)) child.setAttribute('poster', proxyImg(p));
-    }
-  });
-}
-
-new MutationObserver(muts => {
-  for (const m of muts) {
-    if (m.type === 'childList') m.addedNodes.forEach(rewriteCdnAttrs);
-    else if (m.type === 'attributes') rewriteCdnAttrs(m.target);
-  }
-}).observe(document.body, {
-  childList: true, subtree: true,
-  attributes: true, attributeFilter: ['src', 'poster'],
-});
 
 function makePhotoCell(p) {
   const a = document.createElement('a');
@@ -568,8 +544,8 @@ function makePhotoCell(p) {
     a.href = p.full;
     const vid = document.createElement('video');
     vid.className = 'display-img';
-    vid.src = proxyImg(p.full);
-    if (p.thumb) vid.poster = proxyImg(p.thumb);
+    vid.src = p.full;
+    if (p.thumb) vid.poster = p.thumb;
     vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
     addDlFallback(vid);
     a.addEventListener('mouseenter', () => vid.play().catch(() => {}));
@@ -583,11 +559,11 @@ function makePhotoCell(p) {
     a.href = p.full;
     const disp = document.createElement('img');
     disp.className = 'display-img';
-    disp.src = proxyImg(p.thumb ?? p.full); disp.loading = 'lazy'; disp.alt = '';
+    disp.src = p.thumb ?? p.full; disp.loading = 'lazy'; disp.alt = '';
     addDlFallback(disp);
     a.appendChild(disp);
     const og = document.createElement('img');
-    og.className = 'og-img'; og.src = proxyImg(p.full); og.alt = '';
+    og.className = 'og-img'; og.src = p.full; og.alt = '';
     addDlFallback(og);
     a.appendChild(og);
   }
@@ -675,17 +651,22 @@ async function dl() {
   try {
     for (let i = 0; i < urls.length; i++) {
       if (urls.length > 1) btn.textContent = `Saving ${i + 1}/${urls.length}…`;
-      const proxy = `/dl?url=${encodeURIComponent(urls[i])}&dl=1`;
+      const url = urls[i];
       try {
-        const res = await fetch(proxy);
-        if (!res.ok) { window.open(urls[i], '_blank'); continue; }
+        // Try direct fetch first
+        let res = await fetch(url).catch(() => null);
+        // Fallback to proxy if direct failed or blocked by CORS
+        if (!res || !res.ok) {
+          res = await fetch(`/dl?url=${encodeURIComponent(url)}&dl=1`);
+        }
+        if (!res.ok) { window.open(url, '_blank'); continue; }
         const blob = await res.blob();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = blob.type.startsWith('video') ? 'media.mp4' : 'media.jpg';
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      } catch { window.open(urls[i], '_blank'); }
+      } catch { window.open(url, '_blank'); }
       if (i < urls.length - 1) await new Promise(r => setTimeout(r, 400));
     }
     plausible(urls.length > 1 ? 'Save All' : 'Save', { props: { count: urls.length } });
@@ -860,9 +841,11 @@ async function saveHlAll() {
   try {
     for (let i = 0; i < currentHlPhotos.length; i++) {
       const url = currentHlPhotos[i].full;
-      const proxy = `/dl?url=${encodeURIComponent(url)}&dl=1`;
       try {
-        const res = await fetch(proxy);
+        let res = await fetch(url).catch(() => null);
+        if (!res || !res.ok) {
+          res = await fetch(`/dl?url=${encodeURIComponent(url)}&dl=1`);
+        }
         if (!res.ok) { window.open(url, '_blank'); continue; }
         const blob = await res.blob();
         const a = document.createElement('a');
@@ -1135,9 +1118,15 @@ function renderProfile(data) {
   avatarBtn.addEventListener('click', () => openPfpModal(p.username));
   const avatarImg = document.createElement('img');
   avatarImg.className = 'profile-avatar';
-  if (p.profilePicUrl) avatarImg.src = '/dl?url=' + encodeURIComponent(p.profilePicUrl) + '&dl=1';
+  if (p.profilePicUrl) avatarImg.src = p.profilePicUrl;
   avatarImg.alt = '';
-  avatarImg.onerror = function() { this.style.display = 'none'; };
+  avatarImg.onerror = function() {
+    if (this.src && !this.src.includes('/dl?url=')) {
+       this.src = proxyImg(this.src);
+    } else {
+       this.style.display = 'none';
+    }
+  };
   addDlFallback(avatarImg);
   avatarBtn.appendChild(avatarImg);
   hdr.appendChild(avatarBtn);
