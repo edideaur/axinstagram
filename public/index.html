@@ -706,18 +706,23 @@ function proxyImg(url) {
   return url ? '/dl?url=' + encodeURIComponent(url) + '&view=1' : url;
 }
 
+function deproxyUrl(url) {
+  if (!url || !url.includes('/dl?url=')) return url;
+  try { return new URL(url, location.origin).searchParams.get('url') || url; } catch { return url; }
+}
+
 function addDlFallback(el) {
   el.addEventListener('error', function () {
     const src = el.src || el.getAttribute('src');
-    if (src && !src.includes('/dl?url=') && !src.startsWith('blob:')) {
-      console.log('Direct load failed, falling back to proxy:', src);
-      if (el.tagName === 'VIDEO' && el.getAttribute('poster')) {
-         const poster = el.getAttribute('poster');
-         if (poster && !poster.includes('/dl?url=')) el.setAttribute('poster', proxyImg(poster));
-      }
-      el.src = proxyImg(src);
-      if (el.tagName === 'VIDEO') el.load();
+    if (!src || src.includes('/dl?url=') || src.startsWith('blob:')) return;
+    try { if (new URL(src).origin === location.origin) return; } catch { return; }
+    console.log('Direct load failed, falling back to proxy:', src);
+    if (el.tagName === 'VIDEO' && el.getAttribute('poster')) {
+       const poster = el.getAttribute('poster');
+       if (poster && !poster.includes('/dl?url=')) el.setAttribute('poster', proxyImg(poster));
     }
+    el.src = proxyImg(src);
+    if (el.tagName === 'VIDEO') el.load();
   }, { once: true });
 }
 
@@ -1029,7 +1034,7 @@ async function saveHlAll() {
   btn.disabled = true;
   try {
     for (let i = 0; i < currentHlPhotos.length; i++) {
-      const url = currentHlPhotos[i].full;
+      const url = deproxyUrl(currentHlPhotos[i].full);
       try {
         let res = await fetch(url).catch(() => null);
         if (!res || !res.ok) {
@@ -1104,8 +1109,9 @@ function renderHighlights(highlights) {
     a.addEventListener('click', () => openHighlight(h.id, h.title));
     const img = document.createElement('img');
     img.className = 'highlight-cover';
-    if (h.coverUrl) img.src = h.coverUrl;
     img.alt = '';
+    addDlFallback(img);
+    if (h.coverUrl) img.src = h.coverUrl;
     a.appendChild(img);
     const t = document.createElement('div');
     t.className = 'highlight-title';

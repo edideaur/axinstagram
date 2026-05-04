@@ -65,6 +65,9 @@
   const biggest = (cs) => cs.length ? cs.reduce((a, b) => (a.width * a.height >= b.width * b.height ? a : b)).url : "";
   const smallest = (cs) => cs.length ? cs.reduce((a, b) => (a.width * a.height <= b.width * b.height ? a : b)).url : "";
 
+  const biggestGql = (arr) => arr.length ? arr.reduce((a, b) => (a.config_width * a.config_height >= b.config_width * b.config_height ? a : b)).src : '';
+  const smallestGql = (arr) => arr.length ? arr.reduce((a, b) => (a.config_width * a.config_height <= b.config_width * b.config_height ? a : b)).src : '';
+
   function extractStoriesItems(items) {
     const photos = items.map((item) => {
       const imgCands = item.image_versions2?.candidates ?? [];
@@ -76,7 +79,18 @@
           isVideo: true,
         };
       }
-      return { thumb: smallest(imgCands), full: biggest(imgCands) };
+      if (imgCands.length) {
+        return { thumb: smallest(imgCands), full: biggest(imgCands) };
+      }
+      // GQL format fallback (display_resources / display_url)
+      const disp = item.display_resources ?? [];
+      const thumb = disp.length ? smallestGql(disp) : (item.display_url ?? '');
+      if (item.is_video && item.video_resources?.length) {
+        const sorted = [...item.video_resources].sort((a, b) => b.config_width * b.config_height - a.config_width * a.config_height);
+        return { thumb, full: sorted[0].src, isVideo: true };
+      }
+      const sorted = [...disp].sort((a, b) => b.config_width * b.config_height - a.config_width * a.config_height);
+      return { thumb, full: sorted[0]?.src ?? item.display_url ?? '' };
     });
     return { photos, isPhoto: true };
   }
@@ -297,6 +311,10 @@
   const blobCache = new Map();
   const pendingFetches = new Map();
 
+  function dlProxy(cdnUrl) {
+    return PROXY_PREFIX + encodeURIComponent(cdnUrl) + '&view=1';
+  }
+
   function fetchDirectly(url) {
     const target = getTargetUrl(url);
     if (!target) return Promise.resolve(url);
@@ -314,12 +332,12 @@
             blobCache.set(target, blobUrl);
             resolve(blobUrl);
           } else {
-            resolve(url); // Fallback
+            resolve(dlProxy(target));
           }
           pendingFetches.delete(target);
         },
         onerror: () => {
-          resolve(url);
+          resolve(dlProxy(target));
           pendingFetches.delete(target);
         },
       });
@@ -386,7 +404,7 @@
     Object.defineProperty(proto, prop, {
       get: function () { return desc.get.call(this); },
       set: function (val) {
-        if (shouldIntercept(val)) {
+        if (shouldIntercept(val) && !val.includes(PROXY_PREFIX)) {
           fetchDirectly(val).then(b => desc.set.call(this, b));
         } else {
           desc.set.call(this, val);
@@ -407,7 +425,7 @@
     if (!el.tagName) return;
     ['src', 'poster'].forEach(attr => {
       const val = el.getAttribute(attr);
-      if (shouldIntercept(val)) {
+      if (shouldIntercept(val) && !val.includes(PROXY_PREFIX)) {
         fetchDirectly(val).then(b => {
           if (el.getAttribute(attr) === val) el.setAttribute(attr, b);
         });
