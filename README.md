@@ -1,4 +1,4 @@
-<img src="favicon.svg" align="left" height="64" alt="logo" style="margin-right: 16px; margin-bottom: 4px;"/>
+<img src="https://axinstagram.com/favicon.svg" align="left" height="64" alt="logo" style="margin-right: 16px; margin-bottom: 4px;"/>
 
 # axinstagram
 
