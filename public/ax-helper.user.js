@@ -347,6 +347,27 @@
     return p;
   }
 
+  const blobFallbackElements = new WeakSet();
+
+  function addBlobFallback(el, url, prop) {
+    if (blobFallbackElements.has(el)) return;
+    blobFallbackElements.add(el);
+    el.addEventListener('error', function (e) {
+      e.stopImmediatePropagation();
+      blobFallbackElements.delete(el);
+      if (prop === 'src' && el.tagName === 'VIDEO') {
+        const poster = el.getAttribute('poster');
+        if (poster && !poster.includes(PROXY_PREFIX) && !poster.startsWith('blob:')) {
+          fetchDirectly(poster).then(b => { el.poster = b; });
+        }
+      }
+      fetchDirectly(url).then(b => {
+        el[prop] = b;
+        if (prop === 'src' && el.tagName === 'VIDEO') el.load();
+      });
+    }, { once: true });
+  }
+
   // Intercept fetch
   const originalFetch = unsafeWindow.fetch;
   unsafeWindow.fetch = async (input, init) => {
@@ -404,10 +425,9 @@
     Object.defineProperty(proto, prop, {
       get: function () { return desc.get.call(this); },
       set: function (val) {
-        if (shouldIntercept(val) && !val.includes(PROXY_PREFIX)) {
-          fetchDirectly(val).then(b => desc.set.call(this, b));
-        } else {
-          desc.set.call(this, val);
+        desc.set.call(this, val);
+        if (shouldIntercept(val) && !val.includes(PROXY_PREFIX) && !val.startsWith('blob:') && !val.startsWith('data:')) {
+          addBlobFallback(this, val, prop);
         }
       }
     });
@@ -423,12 +443,12 @@
   // MutationObserver for attribute changes
   const check = (el) => {
     if (!el.tagName) return;
+    const tag = el.tagName.toUpperCase();
+    if (tag !== 'IMG' && tag !== 'VIDEO' && tag !== 'SOURCE') return;
     ['src', 'poster'].forEach(attr => {
       const val = el.getAttribute(attr);
-      if (shouldIntercept(val) && !val.includes(PROXY_PREFIX)) {
-        fetchDirectly(val).then(b => {
-          if (el.getAttribute(attr) === val) el.setAttribute(attr, b);
-        });
+      if (val && shouldIntercept(val) && !val.includes(PROXY_PREFIX) && !val.startsWith('blob:') && !val.startsWith('data:')) {
+        addBlobFallback(el, val, attr);
       }
     });
   };

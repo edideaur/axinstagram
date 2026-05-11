@@ -736,6 +736,11 @@ function addDlFallback(el) {
   }, { once: true });
 }
 
+function setMediaCors(el) {
+  el.crossOrigin = 'anonymous';
+  el.referrerPolicy = 'no-referrer';
+}
+
 function makePhotoCell(p) {
   const a = document.createElement('a');
   a.target = '_blank'; a.rel = 'noopener'; a.className = 'photo-cell';
@@ -745,6 +750,7 @@ function makePhotoCell(p) {
     
     const vid = document.createElement('video');
     vid.className = 'display-img';
+    setMediaCors(vid);
     vid.src = p.full;
     if (p.thumb) vid.poster = p.thumb;
     vid.muted = true; vid.loop = true; vid.playsInline = true; vid.preload = 'none';
@@ -762,11 +768,14 @@ function makePhotoCell(p) {
     
     const disp = document.createElement('img');
     disp.className = 'display-img';
+    setMediaCors(disp);
     disp.src = (config.hdthumbs ? p.full : (p.thumb ?? p.full)); disp.loading = 'lazy'; disp.alt = '';
     addDlFallback(disp);
     a.appendChild(disp);
     const og = document.createElement('img');
-    og.className = 'og-img'; og.src = p.full; og.alt = '';
+    og.className = 'og-img';
+    setMediaCors(og);
+    og.src = p.full; og.alt = '';
     addDlFallback(og);
     a.appendChild(og);
   }
@@ -807,6 +816,7 @@ function render(d, raw) {
     }
   } else {
     const vidEl = $('vid');
+    setMediaCors(vidEl);
     vidEl.src = d.videoUrl ?? '';
     if (config.autoplay) vidEl.autoplay = true;
     addDlFallback(vidEl);
@@ -1323,6 +1333,7 @@ function renderProfile(data) {
   avatarBtn.addEventListener('click', () => openPfpModal(p.username));
   const avatarImg = document.createElement('img');
   avatarImg.className = 'profile-avatar';
+  setMediaCors(avatarImg);
   if (p.profilePicUrl) avatarImg.src = p.profilePicUrl;
   avatarImg.alt = '';
   avatarImg.onerror = function() {
