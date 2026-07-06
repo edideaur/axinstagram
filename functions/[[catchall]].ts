@@ -1,9 +1,9 @@
 import { isInstagram } from "../src/utils/url";
 import { handleInstagram } from "../src/services/instagram";
 import { buildEmbedHTML, buildErrorHTML } from "../src/utils/html";
-import type { MediaResult } from "../src/types";
+import type { MediaResult, Env } from "../src/types";
 
-interface Env {
+interface PagesEnv extends Env {
   ASSETS: Fetcher;
 }
 
@@ -36,7 +36,7 @@ function isBrowser(req: Request): boolean {
   return accept.includes("text/html") && accept.includes("*/*");
 }
 
-export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
+export const onRequest: PagesFunction<PagesEnv> = async ({ request, env }) => {
   const { pathname } = new URL(request.url);
   if (pathname === "/favicon.ico" || pathname === "/favicon.svg") {
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#101010"/><text x="16" y="21" text-anchor="middle" font-family="'Courier New',monospace" font-weight="700" font-size="15" fill="#e8e8e8">ax</text></svg>`;
@@ -66,7 +66,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env }) => {
 
   let result: MediaResult;
   try {
-    result = await handleInstagram(sourceURL);
+    result = await handleInstagram(sourceURL, env.ACCOUNTS);
   } catch {
     result = { error: "fetch.fail" };
   }

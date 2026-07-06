@@ -1,6 +1,6 @@
 import { isInstagram } from "../src/utils/url";
 import { handleInstagram } from "../src/services/instagram";
-import type { MediaResult } from "../src/types";
+import type { MediaResult, Env } from "../src/types";
 
 function proxyPhotoThumbs(result: MediaResult, origin: string): MediaResult {
   const dl = (u: string) => `${origin}/dl?url=${encodeURIComponent(u)}`;
@@ -25,7 +25,7 @@ function proxyPhotoThumbs(result: MediaResult, origin: string): MediaResult {
   return result;
 }
 
-export const onRequestGet: PagesFunction = async ({ request }) => {
+export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const url = new URL(request.url);
   const rawUrl = url.searchParams.get("url");
 
@@ -46,7 +46,7 @@ export const onRequestGet: PagesFunction = async ({ request }) => {
 
   let result: MediaResult;
   try {
-    result = await handleInstagram(sourceURL);
+    result = await handleInstagram(sourceURL, env.ACCOUNTS);
   } catch {
     result = { error: "fetch.fail" };
   }

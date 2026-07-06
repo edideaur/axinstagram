@@ -2,3 +2,4 @@ name = "axinstagram"
 pages_build_output_dir = "public"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "437166d9026f3443e3de30f527ed6d80"

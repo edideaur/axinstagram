@@ -6,6 +6,16 @@ const UA =
 const MOBILE_UA =
   "Instagram 275.0.0.27.98 Android (33/13; 280dpi; 720x1423; Xiaomi; Redmi 7; onclite; qcom; en_US; 458229237)";
 
+function getRandomCookie(accounts?: string): string | undefined {
+  if (!accounts) return undefined;
+  const lines = accounts
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (!lines.length) return undefined;
+  return lines[Math.floor(Math.random() * lines.length)];
+}
+
 const EMBED_HEADERS = {
   "User-Agent": UA,
   Accept:
@@ -126,7 +136,10 @@ async function tryHtmlEmbed(
   return null;
 }
 
-async function tryGQL(postId: string): Promise<Record<string, unknown> | null> {
+async function tryGQL(
+  postId: string,
+  cookie?: string,
+): Promise<Record<string, unknown> | null> {
   const pageRes = await fetch(`https://www.instagram.com/p/${postId}/`, {
     headers: EMBED_HEADERS,
   }).catch(() => null);
@@ -220,7 +233,7 @@ async function tryGQL(postId: string): Promise<Record<string, unknown> | null> {
       "X-CSRFToken": csrf,
       ...(bloksId ? { "X-Bloks-Version-Id": bloksId } : {}),
       "x-asbd-id": "129477",
-      cookie: anonCookie,
+      cookie: cookie ?? anonCookie,
       "content-type": "application/x-www-form-urlencoded",
       "X-FB-Friendly-Name": "PolarisPostActionLoadPostQueryQuery",
     },
@@ -363,7 +376,10 @@ function extractFromHtmlEmbed(
   return extractFromGQL(data, postId) ?? extractFromMobileData(data, postId);
 }
 
-export async function handleInstagram(url: URL): Promise<MediaResult> {
+export async function handleInstagram(
+  url: URL,
+  accounts?: string,
+): Promise<MediaResult> {
   const parts = url.pathname.split("/").filter(Boolean);
 
   if (parts[0] === "share") {
@@ -405,6 +421,15 @@ export async function handleInstagram(url: URL): Promise<MediaResult> {
     if (result?.videoUrl || result?.photos?.length) return result;
   }
 
+  const cookie = getRandomCookie(accounts);
+  if (cookie) {
+    const retryData = await tryGQL(postId, cookie);
+    if (retryData) {
+      const result = extractFromGQL(retryData, postId);
+      if (result?.videoUrl || result?.photos?.length) return result;
+    }
+  }
+
   return { error: "fetch.empty" };
 }
 
@@ -429,7 +454,10 @@ export function reelItems(
   )?.items as Record<string, unknown>[] | undefined;
 }
 
-export async function tryFetchStories(userId: string): Promise<MediaResult> {
+export async function tryFetchStories(
+  userId: string,
+  accounts?: string,
+): Promise<MediaResult> {
   const vars = encodeURIComponent(
     `{"reel_ids":[${userId}],"highlight_reel_ids":[],"precomposed_overlay":false}`,
   );
@@ -451,11 +479,24 @@ export async function tryFetchStories(userId: string): Promise<MediaResult> {
   const mobileItems = reelItems(mobile);
   if (mobileItems?.length) return extractStoriesItems(mobileItems);
 
+  const cookie = getRandomCookie(accounts);
+  if (cookie) {
+    const retryGql = await fetch(
+      `https://www.instagram.com/graphql/query/?query_hash=${STORIES_HASH}&variables=${vars}`,
+      { headers: { ...GQL_HEADERS, cookie } },
+    )
+      .then((r) => r.json() as Promise<Record<string, unknown>>)
+      .catch(() => null);
+    const retryItems = reelItems(retryGql);
+    if (retryItems?.length) return extractStoriesItems(retryItems);
+  }
+
   return { error: "fetch.empty" };
 }
 
 export async function tryFetchHighlights(
   highlightId: string,
+  accounts?: string,
 ): Promise<MediaResult> {
   const vars = encodeURIComponent(
     `{"reel_ids":[],"highlight_reel_ids":[${highlightId}],"precomposed_overlay":false}`,
@@ -477,6 +518,18 @@ export async function tryFetchHighlights(
     .catch(() => null);
   const mobileItems = reelItems(mobile);
   if (mobileItems?.length) return extractStoriesItems(mobileItems);
+
+  const cookie = getRandomCookie(accounts);
+  if (cookie) {
+    const retryGql = await fetch(
+      `https://www.instagram.com/graphql/query/?query_hash=${STORIES_HASH}&variables=${vars}`,
+      { headers: { ...GQL_HEADERS, cookie } },
+    )
+      .then((r) => r.json() as Promise<Record<string, unknown>>)
+      .catch(() => null);
+    const retryItems = reelItems(retryGql);
+    if (retryItems?.length) return extractStoriesItems(retryItems);
+  }
 
   return { error: "fetch.empty" };
 }
@@ -501,7 +554,10 @@ function bestProfilePicUrl(user: Record<string, unknown>): string {
   return (user.profile_pic_url_hd ?? user.profile_pic_url ?? "") as string;
 }
 
-export async function tryFetchProfile(username: string): Promise<MediaResult> {
+export async function tryFetchProfile(
+  username: string,
+  accounts?: string,
+): Promise<MediaResult> {
   const allEdges: Record<string, unknown>[] = [];
   let cursor: string | null = null;
   let userInfo: Record<string, unknown> = {};
@@ -559,7 +615,42 @@ export async function tryFetchProfile(username: string): Promise<MediaResult> {
     cursor = pageInfo.end_cursor;
   }
 
-  if (!allEdges.length) return { error: "fetch.empty" };
+  if (!allEdges.length) {
+    const cookie = getRandomCookie(accounts);
+    if (cookie) {
+      const vars = encodeURIComponent(
+        JSON.stringify({
+          data: {
+            count: 12,
+            include_relationship_info: true,
+            latest_besties_reel_media: true,
+            latest_reel_media: true,
+          },
+          username,
+          __relay_internal__pv__PolarisIsLoggedInrelayprovider: true,
+          __relay_internal__pv__PolarisFeedShareMenurelayprovider: true,
+        }),
+      );
+      const json = await fetch(
+        `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`,
+        { headers: { ...GQL_HEADERS, cookie } },
+      )
+        .then((r) => r.json() as Promise<Record<string, unknown>>)
+        .catch(() => null);
+
+      const conn = (json?.data as Record<string, unknown> | undefined)
+        ?.xdt_api__v1__feed__user_timeline_graphql_connection as
+        | Record<string, unknown>
+        | undefined;
+      const edges = conn?.edges as Record<string, unknown>[] | undefined;
+      if (edges?.length) {
+        allEdges.push(...edges);
+        const firstNode = (edges[0] as { node: Record<string, unknown> }).node;
+        userInfo = (firstNode?.user as Record<string, unknown>) ?? {};
+      }
+    }
+    if (!allEdges.length) return { error: "fetch.empty" };
+  }
 
   const extractItem = (item: Record<string, unknown>): Photo => {
     const cands =

@@ -29,4 +29,6 @@ export interface MediaResult {
   capped?: boolean;
 }
 
-export interface Env {}
+export interface Env {
+  ACCOUNTS?: string;
+}
