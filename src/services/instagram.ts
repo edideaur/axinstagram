@@ -47,6 +47,7 @@ function getJsonEntry(
 
 async function tryMobileApi(
   postId: string,
+  cookie?: string,
 ): Promise<Record<string, unknown> | null> {
   const oembedUrl = new URL("https://i.instagram.com/api/v1/oembed/");
   oembedUrl.searchParams.set("url", `https://www.instagram.com/p/${postId}/`);
@@ -60,8 +61,14 @@ async function tryMobileApi(
   const mediaId = oembed?.media_id as string | undefined;
   if (!mediaId) return null;
 
+  const headers: Record<string, string> = {
+    "User-Agent": MOBILE_UA,
+    "x-ig-app-id": "936619743392459",
+  };
+  if (cookie) headers.cookie = cookie;
+
   return fetch(`https://i.instagram.com/api/v1/media/${mediaId}/info/`, {
-    headers: { "User-Agent": MOBILE_UA, "x-ig-app-id": "936619743392459" },
+    headers,
   })
     .then((r) => r.json() as Promise<Record<string, unknown>>)
     .then(
@@ -390,7 +397,7 @@ export async function handleInstagram(
       redirect: "follow",
     }).catch(() => null);
     if (!res) return { error: "fetch.short_link" };
-    return handleInstagram(new URL(res.url));
+    return handleInstagram(new URL(res.url), accounts);
   }
 
   let postId: string | null = null;
@@ -423,6 +430,12 @@ export async function handleInstagram(
 
   const cookie = getRandomCookie(accounts);
   if (cookie) {
+    const retryMobile = await tryMobileApi(postId, cookie);
+    if (retryMobile) {
+      const result = extractFromMobileData(retryMobile, postId);
+      if (result?.videoUrl || result?.photos?.length) return result;
+    }
+
     const retryData = await tryGQL(postId, cookie);
     if (retryData) {
       const result = extractFromGQL(retryData, postId);
@@ -461,6 +474,7 @@ export async function tryFetchStories(
   const vars = encodeURIComponent(
     `{"reel_ids":[${userId}],"highlight_reel_ids":[],"precomposed_overlay":false}`,
   );
+
   const gql = await fetch(
     `https://www.instagram.com/graphql/query/?query_hash=${STORIES_HASH}&variables=${vars}`,
     { headers: GQL_HEADERS },
@@ -501,6 +515,7 @@ export async function tryFetchHighlights(
   const vars = encodeURIComponent(
     `{"reel_ids":[],"highlight_reel_ids":[${highlightId}],"precomposed_overlay":false}`,
   );
+
   const gql = await fetch(
     `https://www.instagram.com/graphql/query/?query_hash=${STORIES_HASH}&variables=${vars}`,
     { headers: GQL_HEADERS },
@@ -564,6 +579,8 @@ export async function tryFetchProfile(
   let capped = false;
   const deadline = Date.now() + 25_000;
 
+  const cookie = getRandomCookie(accounts);
+
   for (let page = 0; page < 100; page++) {
     if (Date.now() > deadline) {
       capped = true;
@@ -585,7 +602,7 @@ export async function tryFetchProfile(
     );
     const json = await fetch(
       `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`,
-      { headers: GQL_HEADERS },
+      { headers: cookie ? { ...GQL_HEADERS, cookie } : GQL_HEADERS },
     )
       .then((r) => r.json() as Promise<Record<string, unknown>>)
       .catch(() => null);
@@ -615,42 +632,7 @@ export async function tryFetchProfile(
     cursor = pageInfo.end_cursor;
   }
 
-  if (!allEdges.length) {
-    const cookie = getRandomCookie(accounts);
-    if (cookie) {
-      const vars = encodeURIComponent(
-        JSON.stringify({
-          data: {
-            count: 12,
-            include_relationship_info: true,
-            latest_besties_reel_media: true,
-            latest_reel_media: true,
-          },
-          username,
-          __relay_internal__pv__PolarisIsLoggedInrelayprovider: true,
-          __relay_internal__pv__PolarisFeedShareMenurelayprovider: true,
-        }),
-      );
-      const json = await fetch(
-        `https://www.instagram.com/graphql/query/?doc_id=8759034877476257&variables=${vars}`,
-        { headers: { ...GQL_HEADERS, cookie } },
-      )
-        .then((r) => r.json() as Promise<Record<string, unknown>>)
-        .catch(() => null);
-
-      const conn = (json?.data as Record<string, unknown> | undefined)
-        ?.xdt_api__v1__feed__user_timeline_graphql_connection as
-        | Record<string, unknown>
-        | undefined;
-      const edges = conn?.edges as Record<string, unknown>[] | undefined;
-      if (edges?.length) {
-        allEdges.push(...edges);
-        const firstNode = (edges[0] as { node: Record<string, unknown> }).node;
-        userInfo = (firstNode?.user as Record<string, unknown>) ?? {};
-      }
-    }
-    if (!allEdges.length) return { error: "fetch.empty" };
-  }
+  if (!allEdges.length) return { error: "fetch.empty" };
 
   const extractItem = (item: Record<string, unknown>): Photo => {
     const cands =
