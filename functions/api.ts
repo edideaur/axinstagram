@@ -2,12 +2,12 @@ import { isInstagram } from "../src/utils/url";
 import { handleInstagram } from "../src/services/instagram";
 import type { MediaResult, Env } from "../src/types";
 
-function proxyPhotoThumbs(result: MediaResult, origin: string): MediaResult {
-  const dl = (u: string) => `${origin}/dl?url=${encodeURIComponent(u)}`;
+function proxyPhotoThumbs(result: MediaResult): MediaResult {
+  const wsrv = (u: string) => `https://wsrv.nl/?url=${encodeURIComponent(u)}`;
   if (result.photos) {
     return {
       ...result,
-      photos: result.photos.map((p) => ({ ...p, thumb: dl(p.thumb) })),
+      photos: result.photos.map((p) => ({ ...p, thumb: wsrv(p.thumb) })),
     };
   }
   if (result.isPhoto && result.videoUrl) {
@@ -15,7 +15,7 @@ function proxyPhotoThumbs(result: MediaResult, origin: string): MediaResult {
       ...result,
       photos: [
         {
-          thumb: dl(result.thumbUrl ?? result.videoUrl),
+          thumb: wsrv(result.thumbUrl ?? result.videoUrl),
           full: result.videoUrl,
         },
       ],
@@ -51,7 +51,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     result = { error: "fetch.fail" };
   }
 
-  result = proxyPhotoThumbs(result, url.origin);
+  result = proxyPhotoThumbs(result);
 
   return Response.json(result, {
     headers: {

@@ -713,23 +713,27 @@ async function go() {
 }
 
 function proxyImg(url) {
-  return url ? '/dl?url=' + encodeURIComponent(url) + '&view=1' : url;
+  return url ? 'https://wsrv.nl/?url=' + encodeURIComponent(url) : url;
 }
 
 function deproxyUrl(url) {
-  if (!url || !url.includes('/dl?url=')) return url;
-  try { return new URL(url, location.origin).searchParams.get('url') || url; } catch { return url; }
+  if (!url) return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'wsrv.nl') return u.searchParams.get('url') || url;
+  } catch {}
+  return url;
 }
 
 function addDlFallback(el) {
   el.addEventListener('error', function () {
     const src = el.src || el.getAttribute('src');
-    if (!src || src.includes('/dl?url=') || src.startsWith('blob:')) return;
+    if (!src || src.includes('wsrv.nl') || src.startsWith('blob:')) return;
     try { if (new URL(src).origin === location.origin) return; } catch { return; }
     console.log('Direct load failed, falling back to proxy:', src);
     if (el.tagName === 'VIDEO' && el.getAttribute('poster')) {
        const poster = el.getAttribute('poster');
-       if (poster && !poster.includes('/dl?url=')) el.setAttribute('poster', proxyImg(poster));
+       if (poster && !poster.includes('wsrv.nl')) el.setAttribute('poster', proxyImg(poster));
     }
     el.src = proxyImg(src);
     if (el.tagName === 'VIDEO') el.load();
@@ -1337,7 +1341,7 @@ function renderProfile(data) {
   if (p.profilePicUrl) avatarImg.src = p.profilePicUrl;
   avatarImg.alt = '';
   avatarImg.onerror = function() {
-    if (this.src && !this.src.includes('/dl?url=')) {
+    if (this.src && !this.src.includes('wsrv.nl')) {
        this.src = proxyImg(this.src);
     } else {
        this.style.display = 'none';

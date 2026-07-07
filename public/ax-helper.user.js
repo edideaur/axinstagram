@@ -32,15 +32,15 @@
   // Signal to the page that the helper is active
   unsafeWindow.__axHelperReady = true;
 
-  const PROXY_PREFIX = '/dl?url=';
+  const PROXY_HOST = 'wsrv.nl';
   const INTERCEPT_HOSTS = ['cdninstagram.com', 'fbcdn.net', 'instagram.com'];
   const IG_APP_ID = '936619743392459';
 
   function shouldIntercept(url) {
     if (!url || typeof url !== 'string' || url.startsWith('blob:') || url.startsWith('data:')) return false;
-    if (url.includes(PROXY_PREFIX)) return true;
     try {
       const u = new URL(url, location.origin);
+      if (u.hostname === PROXY_HOST) return true;
       if (u.origin === location.origin && (u.pathname === '/api' || u.pathname.startsWith('/api/'))) return true;
       return INTERCEPT_HOSTS.some(host => u.hostname.endsWith(host));
     } catch (e) {
@@ -49,14 +49,10 @@
   }
 
   function getTargetUrl(url) {
-    if (url.includes(PROXY_PREFIX)) {
-      try {
-        const u = new URL(url, location.origin);
-        return u.searchParams.get('url');
-      } catch (e) {
-        return null;
-      }
-    }
+    try {
+      const u = new URL(url, location.origin);
+      if (u.hostname === PROXY_HOST) return u.searchParams.get('url');
+    } catch {}
     return url;
   }
 
@@ -293,9 +289,9 @@
       const result = extractFromGQL(json);
       if (result) {
         if (result.photos) {
-          result.photos = result.photos.map(p => ({ ...p, thumb: '/dl?url=' + encodeURIComponent(p.thumb) }));
+          result.photos = result.photos.map(p => ({ ...p, thumb: dlProxy(p.thumb) }));
         } else if (result.isPhoto && result.videoUrl) {
-           result.photos = [{ thumb: '/dl?url=' + encodeURIComponent(result.thumbUrl || result.videoUrl), full: result.videoUrl }];
+           result.photos = [{ thumb: dlProxy(result.thumbUrl || result.videoUrl), full: result.videoUrl }];
            delete result.videoUrl;
         }
         return result;
@@ -312,7 +308,7 @@
   const pendingFetches = new Map();
 
   function dlProxy(cdnUrl) {
-    return PROXY_PREFIX + encodeURIComponent(cdnUrl) + '&view=1';
+    return 'https://wsrv.nl/?url=' + encodeURIComponent(cdnUrl);
   }
 
   function fetchDirectly(url) {

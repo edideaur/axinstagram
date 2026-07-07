@@ -143,7 +143,6 @@ function esc(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function dl(workerUrl: string, imageUrl: string): string {
-  const origin = new URL(workerUrl).origin;
-  return `${origin}/dl?url=${encodeURIComponent(imageUrl)}&view=1`;
+function dl(_workerUrl: string, imageUrl: string): string {
+  return `https://wsrv.nl/?url=${encodeURIComponent(imageUrl)}`;
 }
